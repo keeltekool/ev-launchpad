@@ -1,2 +1,9 @@
 Design_Full/
 SPEC-FOR-CLAUDE-DESIGN.md
+node_modules/
+capture-screenshots.mjs
+retry-failed.mjs
+package.json
+package-lock.json
+
+.vercel
