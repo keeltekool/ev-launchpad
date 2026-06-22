@@ -1,0 +1,95 @@
+/* ============================================================
+   Launchpad — Design Tokens
+   The single source of truth for color, type, spacing & motion.
+   Light mode lives on :root; dark mode overrides on [data-theme="dark"].
+   ============================================================ */
+
+:root {
+  /* --- Surface & text (Light, default) --- */
+  --bg:            #F5F5F7;
+  --tile-bg:       #FFFFFF;
+  --tile-border:   rgba(0, 0, 0, 0.06);
+  --text-1:        #1D1D1F;   /* primary  — names, title */
+  --text-2:        #86868B;   /* secondary — tagline, footer, placeholder */
+  --input-bg:      #FFFFFF;
+  --input-border:  rgba(0, 0, 0, 0.10);
+  --hairline:      rgba(0, 0, 0, 0.08);
+
+  /* --- Accent --- */
+  --accent:        #0071E3;
+  --accent-ring:   rgba(0, 113, 227, 0.45);
+
+  /* --- Elevation --- */
+  --shadow-hover:  0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  /* --- Screenshot fallback palette (rotated by tile index) --- */
+  --ph-1: #E8E0F0;
+  --ph-2: #D4E8E0;
+  --ph-3: #E8E0D4;
+  --ph-4: #D4D8E8;
+  --ph-5: #E8D4D4;
+  --ph-6: #D8E8D4;
+  --ph-ink: rgba(0, 0, 0, 0.28);   /* fallback initial color */
+
+  /* --- Typography --- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --fz-title:  22px;
+  --fz-body:   14px;
+  --fz-name:   13.5px;
+  --fz-footer: 12px;
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold: 600;
+
+  /* --- Spacing scale (4px base) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* --- Radii --- */
+  --radius:      8px;
+  --radius-pill: 999px;
+
+  /* --- Grid --- */
+  --tile-min: 220px;
+  --tile-max: 280px;
+  --grid-gap: 16px;
+
+  /* --- Motion --- */
+  --ease:      cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:  150ms;
+  --dur-base:  200ms;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg:            #1C1C1E;
+  --tile-bg:       #2C2C2E;
+  --tile-border:   rgba(255, 255, 255, 0.07);
+  --text-1:        #F5F5F7;
+  --text-2:        #86868B;
+  --input-bg:      #2C2C2E;
+  --input-border:  rgba(255, 255, 255, 0.12);
+  --hairline:      rgba(255, 255, 255, 0.09);
+
+  --accent:        #0A84FF;
+  --accent-ring:   rgba(10, 132, 255, 0.55);
+
+  --shadow-hover:  0 4px 14px rgba(0, 0, 0, 0.45);
+
+  /* Muted fallbacks read better slightly desaturated on dark */
+  --ph-1: #3A3350;
+  --ph-2: #2F4942;
+  --ph-3: #4A4234;
+  --ph-4: #343A52;
+  --ph-5: #4A3636;
+  --ph-6: #36482F;
+  --ph-ink: rgba(255, 255, 255, 0.30);
+
+  color-scheme: dark;
+}
