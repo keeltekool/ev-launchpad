@@ -160,6 +160,7 @@ body {
   border: 1px solid var(--tile-border);
   border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: box-shadow var(--dur-base) var(--ease),
               transform var(--dur-fast) var(--ease),
               border-color var(--dur-base) var(--ease);

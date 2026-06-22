@@ -8,7 +8,7 @@
   /* --- Surface & text (Light, default) --- */
   --bg:            #F5F5F7;
   --tile-bg:       #FFFFFF;
-  --tile-border:   rgba(0, 0, 0, 0.06);
+  --tile-border:   rgba(0, 0, 0, 0.13);
   --text-1:        #1D1D1F;   /* primary  — names, title */
   --text-2:        #86868B;   /* secondary — tagline, footer, placeholder */
   --input-bg:      #FFFFFF;
@@ -70,7 +70,7 @@
 [data-theme="dark"] {
   --bg:            #1C1C1E;
   --tile-bg:       #2C2C2E;
-  --tile-border:   rgba(255, 255, 255, 0.07);
+  --tile-border:   rgba(255, 255, 255, 0.14);
   --text-1:        #F5F5F7;
   --text-2:        #86868B;
   --input-bg:      #2C2C2E;
