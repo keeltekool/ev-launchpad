@@ -26,73 +26,65 @@ export default async function handler(req, res) {
   const startISO = sevenDaysAgo.toISOString().replace(/\.\d+Z/, 'Z');
   const endISO = now.toISOString().replace(/\.\d+Z/, 'Z');
 
-  // ponytail: one org-level stats_v2 call for ALL projects (transactions + spans)
-  // stats/?stat=received only counts errors — stats_v2 with category=transaction is what we need
-  let orgStats;
-  try {
-    orgStats = await fetchJSON(
-      `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&groupBy=project&groupBy=category&category=transaction&interval=1d&start=${startISO}&end=${endISO}`,
-      headers
-    );
-  } catch (err) {
-    orgStats = { groups: [] };
+  // Resolve slug → Sentry project ID (needed for stats_v2 filtering)
+  const slugToId = {};
+  for (const p of PROJECTS) {
+    try {
+      const info = await fetchJSON(`${SENTRY_BASE}/projects/${SENTRY_ORG}/${p.slug}/`, headers);
+      slugToId[p.slug] = info.id;
+    } catch { /* skip */ }
   }
 
-  // Build lookup: slug → { dailyCounts, total }
-  const txByProject = {};
-  for (const g of orgStats.groups || []) {
-    const pid = g.by?.project;
-    const series = g.series?.['sum(quantity)'] || [];
-    const total = g.totals?.['sum(quantity)'] || 0;
-    if (pid) txByProject[pid] = { dailyCounts: series, total };
-  }
-
-  // ponytail: sequential per-project for issues (can't batch)
   const results = [];
   for (const p of PROJECTS) {
     try {
+      // 1. Unresolved issues (errors)
       const issues = await fetchJSON(
         `${SENTRY_BASE}/projects/${SENTRY_ORG}/${p.slug}/issues/?query=is:unresolved&sort=date&limit=100`,
         headers
       );
 
+      // 2. Request activity (transactions) — per-project stats_v2 with daily series
+      const projId = slugToId[p.slug];
+      let dailyCounts = [];
+      let totalRequests = 0;
+      let requestsToday = 0;
+
+      if (projId) {
+        const stats = await fetchJSON(
+          `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&category=transaction&project=${projId}&interval=1d&start=${startISO}&end=${endISO}`,
+          headers
+        );
+        const group = stats.groups?.[0];
+        dailyCounts = group?.series?.['sum(quantity)'] || [];
+        totalRequests = group?.totals?.['sum(quantity)'] || 0;
+        requestsToday = dailyCounts.length > 0 ? dailyCounts[dailyCounts.length - 1] : 0;
+      }
+
       const unresolvedCount = issues.length;
       const lastSeen = unresolvedCount > 0 ? issues[0].lastSeen : null;
+      const sdkActive = totalRequests > 0;
 
-      // Match org stats by project ID — need to resolve slug to ID
-      // ponytail: match by iterating (6 projects, fine)
-      const projInfo = await fetchJSON(
-        `${SENTRY_BASE}/projects/${SENTRY_ORG}/${p.slug}/`,
-        headers
-      );
-      const projId = projInfo.id;
-      const tx = txByProject[Number(projId)] || { dailyCounts: [], total: 0 };
-
-      const dailyCounts = tx.dailyCounts;
-      const totalEvents = tx.total;
-      const eventsToday = dailyCounts.length > 0 ? dailyCounts[dailyCounts.length - 1] : 0;
-
+      // Status: activity-first, errors as overlay
       let status = 'green';
       if (unresolvedCount >= 6 || (lastSeen && Date.now() - new Date(lastSeen).getTime() < 3600000)) {
         status = 'red';
       } else if (unresolvedCount > 0) {
         status = 'yellow';
       }
-
-      const sdkActive = totalEvents > 0;
       if (!sdkActive) status = 'dormant';
 
       results.push({
         ...p, status, unresolvedCount, lastSeen,
-        totalEvents7d: totalEvents,
-        eventsToday,
+        requests7d: totalRequests,
+        requestsToday,
         dailyCounts,
         sdkActive,
       });
     } catch (err) {
       results.push({
         ...p, status: 'unknown', unresolvedCount: null, lastSeen: null,
-        totalEvents7d: null, eventsToday: null, dailyCounts: [], sdkActive: null,
+        requests7d: null, requestsToday: null, dailyCounts: [], sdkActive: null,
         error: err.message,
       });
     }
