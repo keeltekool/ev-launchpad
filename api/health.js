@@ -22,11 +22,13 @@ export default async function handler(req, res) {
 
   const headers = { Authorization: `Bearer ${token}` };
   const now = new Date();
-  const sevenDaysAgo = new Date(now - 7 * 86400000);
-  const startISO = sevenDaysAgo.toISOString().replace(/\.\d+Z/, 'Z');
-  const endISO = now.toISOString().replace(/\.\d+Z/, 'Z');
 
-  // Resolve slug → Sentry project ID (needed for stats_v2 filtering)
+  // Two time windows: 24h at 1h resolution (live today count) + 7d at 1d resolution (sparkline)
+  const oneDayAgo = new Date(now - 86400000);
+  const sevenDaysAgo = new Date(now - 7 * 86400000);
+  const fmt = d => d.toISOString().replace(/\.\d+Z/, 'Z');
+
+  // Resolve slug → Sentry project ID
   const slugToId = {};
   for (const p of PROJECTS) {
     try {
@@ -38,43 +40,48 @@ export default async function handler(req, res) {
   const results = [];
   for (const p of PROJECTS) {
     try {
-      // 1. Unresolved issues (errors)
       const issues = await fetchJSON(
         `${SENTRY_BASE}/projects/${SENTRY_ORG}/${p.slug}/issues/?query=is:unresolved&sort=date&limit=100`,
         headers
       );
 
-      // 2. Request activity — hourly resolution (daily has aggregation delay), bucketed to days
       const projId = slugToId[p.slug];
       let dailyCounts = [];
       let totalRequests = 0;
       let requestsToday = 0;
 
       if (projId) {
-        const stats = await fetchJSON(
-          `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&category=transaction&project=${projId}&interval=1h&start=${startISO}&end=${endISO}`,
+        // 24h hourly — for accurate "today" count (no aggregation delay)
+        const recent = await fetchJSON(
+          `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&category=transaction&project=${projId}&interval=1h&start=${fmt(oneDayAgo)}&end=${fmt(now)}`,
           headers
         );
-        const hourly = stats.groups?.[0]?.series?.['sum(quantity)'] || [];
-        const intervals = stats.intervals || [];
+        const hourly = recent.groups?.[0]?.series?.['sum(quantity)'] || [];
+        requestsToday = hourly.reduce((a, b) => a + b, 0);
 
-        // Bucket hourly data into days
-        const dayBuckets = {};
-        for (let i = 0; i < intervals.length; i++) {
-          const day = intervals[i].slice(0, 10);
-          dayBuckets[day] = (dayBuckets[day] || 0) + (hourly[i] || 0);
+        // 7d daily — for sparkline shape + weekly total
+        const weekly = await fetchJSON(
+          `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&category=transaction&project=${projId}&interval=1d&start=${fmt(sevenDaysAgo)}&end=${fmt(now)}`,
+          headers
+        );
+        const weekGroup = weekly.groups?.[0];
+        dailyCounts = weekGroup?.series?.['sum(quantity)'] || [];
+        const weeklyTotal = weekGroup?.totals?.['sum(quantity)'] || 0;
+
+        // Use the higher of: weekly total vs today's hourly sum
+        // (daily aggregation lags, so today's bucket in the sparkline may be stale)
+        totalRequests = Math.max(weeklyTotal, requestsToday);
+
+        // Patch the last sparkline bar with the live hourly count if it's higher
+        if (dailyCounts.length > 0 && requestsToday > dailyCounts[dailyCounts.length - 1]) {
+          dailyCounts[dailyCounts.length - 1] = requestsToday;
         }
-        const sortedDays = Object.keys(dayBuckets).sort();
-        dailyCounts = sortedDays.map(d => dayBuckets[d]);
-        totalRequests = hourly.reduce((a, b) => a + b, 0);
-        requestsToday = dailyCounts.length > 0 ? dailyCounts[dailyCounts.length - 1] : 0;
       }
 
       const unresolvedCount = issues.length;
       const lastSeen = unresolvedCount > 0 ? issues[0].lastSeen : null;
       const sdkActive = totalRequests > 0;
 
-      // Status: activity-first, errors as overlay
       let status = 'green';
       if (unresolvedCount >= 6 || (lastSeen && Date.now() - new Date(lastSeen).getTime() < 3600000)) {
         status = 'red';
