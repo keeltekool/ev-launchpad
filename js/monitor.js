@@ -169,5 +169,7 @@
     var refreshBtn = document.getElementById("refresh-btn");
     if (refreshBtn) refreshBtn.addEventListener("click", loadHealth);
     loadHealth();
+    // Auto-refresh every 5 min
+    setInterval(loadHealth, 5 * 60 * 1000);
   });
 })();
