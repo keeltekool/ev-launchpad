@@ -10,8 +10,6 @@ const PROJECTS = [
   { name: 'Athlon', slug: 'athlon', appUrl: 'https://athlon.vercel.app' },
 ];
 
-const SEVEN_DAYS = 7 * 24 * 60 * 60;
-
 async function fetchJSON(url, headers) {
   const resp = await fetch(url, { headers });
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -23,30 +21,55 @@ export default async function handler(req, res) {
   if (!token) return res.status(500).json({ error: 'Missing SENTRY_AUTH_TOKEN' });
 
   const headers = { Authorization: `Bearer ${token}` };
-  const since = Math.floor(Date.now() / 1000) - SEVEN_DAYS;
+  const now = new Date();
+  const sevenDaysAgo = new Date(now - 7 * 86400000);
+  const startISO = sevenDaysAgo.toISOString().replace(/\.\d+Z/, 'Z');
+  const endISO = now.toISOString().replace(/\.\d+Z/, 'Z');
 
-  // ponytail: sequential to avoid Sentry 429 rate limits
+  // ponytail: one org-level stats_v2 call for ALL projects (transactions + spans)
+  // stats/?stat=received only counts errors — stats_v2 with category=transaction is what we need
+  let orgStats;
+  try {
+    orgStats = await fetchJSON(
+      `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&groupBy=project&groupBy=category&category=transaction&interval=1d&start=${startISO}&end=${endISO}`,
+      headers
+    );
+  } catch (err) {
+    orgStats = { groups: [] };
+  }
+
+  // Build lookup: slug → { dailyCounts, total }
+  const txByProject = {};
+  for (const g of orgStats.groups || []) {
+    const pid = g.by?.project;
+    const series = g.series?.['sum(quantity)'] || [];
+    const total = g.totals?.['sum(quantity)'] || 0;
+    if (pid) txByProject[pid] = { dailyCounts: series, total };
+  }
+
+  // ponytail: sequential per-project for issues (can't batch)
   const results = [];
   for (const p of PROJECTS) {
     try {
-      // 1. Unresolved issues
       const issues = await fetchJSON(
         `${SENTRY_BASE}/projects/${SENTRY_ORG}/${p.slug}/issues/?query=is:unresolved&sort=date&limit=100`,
-        headers
-      );
-
-      // 2. Event stats (last 7 days) — proves SDK is alive
-      const stats = await fetchJSON(
-        `${SENTRY_BASE}/projects/${SENTRY_ORG}/${p.slug}/stats/?stat=received&resolution=1d&since=${since}`,
         headers
       );
 
       const unresolvedCount = issues.length;
       const lastSeen = unresolvedCount > 0 ? issues[0].lastSeen : null;
 
-      // stats is [[timestamp, count], ...] for each day
-      const dailyCounts = Array.isArray(stats) ? stats.map(s => s[1]) : [];
-      const totalEvents = dailyCounts.reduce((a, b) => a + b, 0);
+      // Match org stats by project ID — need to resolve slug to ID
+      // ponytail: match by iterating (6 projects, fine)
+      const projInfo = await fetchJSON(
+        `${SENTRY_BASE}/projects/${SENTRY_ORG}/${p.slug}/`,
+        headers
+      );
+      const projId = projInfo.id;
+      const tx = txByProject[Number(projId)] || { dailyCounts: [], total: 0 };
+
+      const dailyCounts = tx.dailyCounts;
+      const totalEvents = tx.total;
       const eventsToday = dailyCounts.length > 0 ? dailyCounts[dailyCounts.length - 1] : 0;
 
       let status = 'green';
@@ -56,7 +79,6 @@ export default async function handler(req, res) {
         status = 'yellow';
       }
 
-      // If SDK has never sent any event, flag it
       const sdkActive = totalEvents > 0;
       if (!sdkActive) status = 'dormant';
 
@@ -76,7 +98,7 @@ export default async function handler(req, res) {
     }
   }
 
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
   return res.json({
     projects: results,
     updatedAt: new Date().toISOString(),
