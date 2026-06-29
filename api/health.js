@@ -44,7 +44,7 @@ export default async function handler(req, res) {
         headers
       );
 
-      // 2. Request activity (transactions) — per-project stats_v2 with daily series
+      // 2. Request activity — hourly resolution (daily has aggregation delay), bucketed to days
       const projId = slugToId[p.slug];
       let dailyCounts = [];
       let totalRequests = 0;
@@ -52,12 +52,21 @@ export default async function handler(req, res) {
 
       if (projId) {
         const stats = await fetchJSON(
-          `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&category=transaction&project=${projId}&interval=1d&start=${startISO}&end=${endISO}`,
+          `${SENTRY_BASE}/organizations/${SENTRY_ORG}/stats_v2/?field=sum(quantity)&category=transaction&project=${projId}&interval=1h&start=${startISO}&end=${endISO}`,
           headers
         );
-        const group = stats.groups?.[0];
-        dailyCounts = group?.series?.['sum(quantity)'] || [];
-        totalRequests = group?.totals?.['sum(quantity)'] || 0;
+        const hourly = stats.groups?.[0]?.series?.['sum(quantity)'] || [];
+        const intervals = stats.intervals || [];
+
+        // Bucket hourly data into days
+        const dayBuckets = {};
+        for (let i = 0; i < intervals.length; i++) {
+          const day = intervals[i].slice(0, 10);
+          dayBuckets[day] = (dayBuckets[day] || 0) + (hourly[i] || 0);
+        }
+        const sortedDays = Object.keys(dayBuckets).sort();
+        dailyCounts = sortedDays.map(d => dayBuckets[d]);
+        totalRequests = hourly.reduce((a, b) => a + b, 0);
         requestsToday = dailyCounts.length > 0 ? dailyCounts[dailyCounts.length - 1] : 0;
       }
 
