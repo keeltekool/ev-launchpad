@@ -9,6 +9,7 @@ const PROJECTS = [
   { name: 'HankeRadar', slug: 'hankeradar', appUrl: 'https://hankeradar-alpha.vercel.app' },
   { name: 'Athlon', slug: 'athlon', appUrl: 'https://athlon.vercel.app' },
   { name: 'Keepr', slug: 'keepr', appUrl: 'https://keepr-psi.vercel.app' },
+  { name: 'Hinnavaht', slug: 'hinnavaht', appUrl: 'https://hinnavaht.vercel.app' },
 ];
 
 async function fetchJSON(url, headers) {
