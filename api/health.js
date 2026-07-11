@@ -10,6 +10,7 @@ const PROJECTS = [
   { name: 'Athlon', slug: 'athlon', appUrl: 'https://athlon.vercel.app' },
   { name: 'Keepr', slug: 'keepr', appUrl: 'https://keepr-psi.vercel.app' },
   { name: 'Hinnavaht', slug: 'hinnavaht', appUrl: 'https://hinnavaht.vercel.app' },
+  { name: 'Category PRO', slug: 'category-pro', appUrl: 'https://category-pro-egertv1s-projects.vercel.app' },
 ];
 
 async function fetchJSON(url, headers) {
