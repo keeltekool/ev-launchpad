@@ -1,0 +1,9 @@
+{
+  "apps": [
+    { "name": "ApplyKit",   "slug": "applykit",   "url": "https://cv-tailor-plus.vercel.app",   "marker": "ApplyKit" },
+    { "name": "HankeRadar", "slug": "hankeradar", "url": "https://hankeradar-alpha.vercel.app", "marker": "HankeRadar" },
+    { "name": "Hinnavaht",  "slug": "hinnavaht",  "url": "https://hinnavaht.vercel.app",        "marker": "Hinnavaht" },
+    { "name": "Keepr",      "slug": "keepr",      "url": "https://keepr-psi.vercel.app",        "marker": "Keepr" },
+    { "name": "Athlon",     "slug": "athlon",     "url": "https://athlon.vercel.app",           "marker": "Athlon" }
+  ]
+}

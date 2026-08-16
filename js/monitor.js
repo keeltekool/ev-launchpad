@@ -144,6 +144,70 @@
     statusLine.classList.add("is-visible");
   }
 
+  /* ---- Fleet Doctor pane (written by the Fleet Doctor cloud routine) ---- */
+
+  function fleetChip(cls, count, label) {
+    return '<span class="fleet__chip fleet__chip--' + cls + '">' + count + " " + label + "</span>";
+  }
+
+  function renderFleet(report) {
+    var el = document.getElementById("fleet-doctor");
+    if (!el) return;
+
+    var c = report.counts || {};
+    var html =
+      '<div class="fleet__head">' +
+        '<span class="fleet__title">Fleet Doctor</span>' +
+        '<span class="fleet__time">' + timeAgo(report.generatedAt) + "</span>" +
+        '<span class="fleet__chips">' +
+          fleetChip("green", c.healthy || 0, "healthy") +
+          fleetChip("yellow", c.warning || 0, "warning") +
+          fleetChip("red", c.down || 0, "down") +
+        "</span>" +
+      "</div>" +
+      '<p class="fleet__headline">' + (report.headline || "") + "</p>";
+
+    var flagged = (report.apps || []).filter(function (a) { return a.status !== "healthy"; });
+    if (flagged.length) {
+      html += '<ul class="fleet__issues">';
+      flagged.forEach(function (a) {
+        var issue = (a.topIssues && a.topIssues[0]) || null;
+        html +=
+          '<li class="fleet__issue fleet__issue--' + a.status + '">' +
+            "<strong>" + a.name + "</strong> — " +
+            (a.status === "down"
+              ? "DOWN (HTTP " + (a.http && a.http.code != null ? a.http.code : "?") + ")"
+              : (a.unresolved + " unresolved" + (a.delta ? " (" + a.delta + ")" : ""))) +
+            (issue
+              ? ' · <a href="' + issue.permalink + '" target="_blank" rel="noopener noreferrer">' +
+                issue.title + "</a> (" + issue.count + " events)"
+              : "") +
+          "</li>";
+      });
+      html += "</ul>";
+    }
+
+    el.innerHTML = html;
+    el.hidden = false;
+  }
+
+  function loadFleet() {
+    fetch("/data/fleet-report.json?_t=" + Date.now(), { cache: "no-cache" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("no report");
+        return r.json();
+      })
+      .then(renderFleet)
+      .catch(function () {
+        var el = document.getElementById("fleet-doctor");
+        if (!el) return;
+        el.innerHTML =
+          '<div class="fleet__head"><span class="fleet__title">Fleet Doctor</span>' +
+          '<span class="fleet__time">no report yet — runs Mon/Wed/Fri 06:30</span></div>';
+        el.hidden = false;
+      });
+  }
+
   function loadHealth() {
     var grid = document.getElementById("grid");
     var loading = document.getElementById("loading");
@@ -168,6 +232,7 @@
     if (toggle) toggle.addEventListener("click", toggleTheme);
     var refreshBtn = document.getElementById("refresh-btn");
     if (refreshBtn) refreshBtn.addEventListener("click", loadHealth);
+    loadFleet();
     loadHealth();
     // Auto-refresh every 5 min
     setInterval(loadHealth, 5 * 60 * 1000);

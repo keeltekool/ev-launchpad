@@ -395,6 +395,59 @@ a.tile__media:focus-visible {
 }
 .empty.is-visible { display: block; }
 
+/* ---------------- Fleet Doctor pane ---------------- */
+.fleet {
+  background: var(--tile-bg);
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.fleet[hidden] { display: none; }
+.fleet__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.fleet__title {
+  font-weight: var(--fw-semibold);
+  color: var(--text-1);
+}
+.fleet__time { color: var(--text-2); font-size: var(--fz-footer); }
+.fleet__chips { display: flex; gap: var(--space-2); margin-left: auto; }
+.fleet__chip {
+  font-size: var(--fz-footer);
+  font-weight: var(--fw-semibold);
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.fleet__chip--green  { background: var(--status-green-bg);  color: var(--status-green-fg); }
+.fleet__chip--yellow { background: var(--status-yellow-bg); color: var(--status-yellow-fg); }
+.fleet__chip--red    { background: var(--status-red-bg);    color: var(--status-red-fg); }
+.fleet__headline {
+  margin: var(--space-3) 0 0;
+  color: var(--text-1);
+  line-height: 1.5;
+}
+.fleet__issues {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.fleet__issue {
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--hairline);
+  color: var(--text-2);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.fleet__issue strong { color: var(--text-1); }
+.fleet__issue--down strong { color: var(--status-red-fg); }
+.fleet__issue a { color: var(--accent); text-decoration: none; }
+.fleet__issue a:hover { text-decoration: underline; }
+
 /* ---------------- Footer ---------------- */
 .site-footer {
   margin-top: var(--space-12);

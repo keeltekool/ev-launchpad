@@ -83,6 +83,12 @@ export default async function handler(req, res) {
 
       const unresolvedCount = issues.length;
       const lastSeen = unresolvedCount > 0 ? issues[0].lastSeen : null;
+      const topIssues = issues.slice(0, 3).map(i => ({
+        title: i.title,
+        count: i.count,
+        permalink: i.permalink,
+        lastSeen: i.lastSeen,
+      }));
       const sdkActive = totalRequests > 0;
 
       let status = 'green';
@@ -94,7 +100,7 @@ export default async function handler(req, res) {
       if (!sdkActive) status = 'dormant';
 
       results.push({
-        ...p, status, unresolvedCount, lastSeen,
+        ...p, status, unresolvedCount, lastSeen, topIssues,
         requests7d: totalRequests,
         requestsToday,
         dailyCounts,
