@@ -2,17 +2,25 @@
 
 **Live:** https://ev-launchpad.vercel.app
 **Repo:** https://github.com/keeltekool/ev-launchpad
-**Type:** Static HTML/CSS/JS (zero dependencies, no build step)
-**Last updated:** 2026-06-22
+**Type:** Static HTML/CSS/JS (zero dependencies, no build step) + one Vercel function (`api/health.js`)
+**Last updated:** 2026-08-16
 
 ## Services
 
-| Service | Purpose |
-|---------|---------|
-| Vercel | Static hosting, auto-deploy from GitHub |
-| GitHub | keeltekool/ev-launchpad |
+| Service | Purpose | Env vars |
+|---------|---------|----------|
+| Vercel | Static hosting, auto-deploy from GitHub | `SENTRY_AUTH_TOKEN` (used by `api/health.js`) |
+| GitHub | keeltekool/ev-launchpad | — |
+| Sentry | Error/traffic data for `/monitor` (org `bits-and-pixels-ou`, EU) | token in Vercel only |
+| Anthropic RemoteTrigger | Fleet Doctor cloud routine | — |
 
-No database, no auth, no API keys, no env vars.
+No database, no auth.
+
+## Fleet Doctor (autonomous monitoring agent)
+
+Cloud routine `trig_01YTjYDs3ZzsGbu3cxrNQzKL` — Mon/Wed/Fri 03:30 UTC, model pinned `claude-sonnet-5` (hard rule: never Fable/Opus). Checks the 5 apps in `data/fleet.json` (Sentry via `/api/health` + HTTP/marker checks), commits `data/fleet-report.json` → auto-deploy renders the pane on `monitor.html`. Read-only, no autofix (v2). Alerts: GitHub issue on this repo only when RED (app down / genuinely NEW issue; first-appearance baseline never alerts). Plan + diagram: `docs/plans/fleet-doctor-v1.md`. Manage: `/schedule` or claude.ai/code/routines.
+
+**Smoke test:** `curl -s https://ev-launchpad.vercel.app/data/fleet-report.json | node -e "JSON.parse(require('fs').readFileSync(0))"` + pane visible on `/monitor.html`.
 
 ## What it does
 
