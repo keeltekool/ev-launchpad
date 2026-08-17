@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-08-16T08:18:34Z",
-  "headline": "First health check for the fleet: all 5 apps are up and responding normally. Two apps have an unresolved Sentry issue worth a look — ApplyKit has a recurring ENOENT file-not-found error (2 occurrences), and Athlon has a one-off postMessage error from a stale WebView session. Nothing urgent, but both are now being tracked going forward.",
+  "generatedAt": "2026-08-17T03:37:53Z",
+  "headline": "Quiet day across the fleet — nothing changed since yesterday. ApplyKit and Athlon still carry their previously-flagged issues (an ENOENT file error and a stale WebView postMessage error), but neither has grown or produced anything new. All 5 apps are up, responding normally, and no new problems appeared.",
   "counts": { "healthy": 3, "warning": 2, "down": 0 },
   "apps": [
     {
       "name": "ApplyKit",
       "slug": "applykit",
       "status": "warning",
-      "http": { "code": 200, "ms": 1444, "markerFound": true },
+      "http": { "code": 200, "ms": 2264, "markerFound": true },
       "unresolved": 1,
-      "delta": "new",
+      "delta": "+0",
       "topIssues": [
         { "title": "Error: ENOENT: no such file or directory, stat", "count": "2", "permalink": "https://bits-and-pixels-ou.sentry.io/issues/138629378/" }
       ]
@@ -18,42 +18,43 @@
       "name": "HankeRadar",
       "slug": "hankeradar",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1688, "markerFound": true },
+      "http": { "code": 200, "ms": 1660, "markerFound": true },
       "unresolved": 0,
-      "delta": "new",
+      "delta": "+0",
       "topIssues": []
     },
     {
       "name": "Hinnavaht",
       "slug": "hinnavaht",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1089, "markerFound": true },
+      "http": { "code": 200, "ms": 2479, "markerFound": true },
       "unresolved": 0,
-      "delta": "new",
+      "delta": "+0",
       "topIssues": []
     },
     {
       "name": "Keepr",
       "slug": "keepr",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1179, "markerFound": true },
+      "http": { "code": 200, "ms": 1176, "markerFound": true },
       "unresolved": 0,
-      "delta": "new",
+      "delta": "+0",
       "topIssues": []
     },
     {
       "name": "Athlon",
       "slug": "athlon",
       "status": "warning",
-      "http": { "code": 200, "ms": 447, "markerFound": true },
+      "http": { "code": 200, "ms": 621, "markerFound": true },
       "unresolved": 1,
-      "delta": "new",
+      "delta": "+0",
       "topIssues": [
         { "title": "Error: Error invoking postMessage: Java object is gone", "count": "1", "permalink": "https://bits-and-pixels-ou.sentry.io/issues/137481801/" }
       ]
     }
   ],
   "history": [
-    { "date": "2026-08-16", "healthy": 3, "warning": 2, "down": 0 }
+    { "date": "2026-08-16", "healthy": 3, "warning": 2, "down": 0 },
+    { "date": "2026-08-17", "healthy": 3, "warning": 2, "down": 0 }
   ]
 }
