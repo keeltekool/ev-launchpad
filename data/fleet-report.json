@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T03:35:06Z",
+  "generatedAt": "2026-08-21T03:35:14Z",
   "headline": "Quiet fleet — nothing changed since the last report. ApplyKit and Athlon still carry their previously-flagged issues (an ENOENT file error and a stale WebView postMessage error), but neither has grown or produced anything new. All 5 apps are up, responding normally, with no new problems.",
   "counts": { "healthy": 3, "warning": 2, "down": 0 },
   "apps": [
@@ -7,7 +7,7 @@
       "name": "ApplyKit",
       "slug": "applykit",
       "status": "warning",
-      "http": { "code": 200, "ms": 2436, "markerFound": true },
+      "http": { "code": 200, "ms": 2606, "markerFound": true },
       "unresolved": 1,
       "delta": "+0",
       "topIssues": [
@@ -18,7 +18,7 @@
       "name": "HankeRadar",
       "slug": "hankeradar",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1646, "markerFound": true },
+      "http": { "code": 200, "ms": 5965, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -27,7 +27,7 @@
       "name": "Hinnavaht",
       "slug": "hinnavaht",
       "status": "healthy",
-      "http": { "code": 200, "ms": 2357, "markerFound": true },
+      "http": { "code": 200, "ms": 2624, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -36,7 +36,7 @@
       "name": "Keepr",
       "slug": "keepr",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1191, "markerFound": true },
+      "http": { "code": 200, "ms": 5456, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -45,7 +45,7 @@
       "name": "Athlon",
       "slug": "athlon",
       "status": "warning",
-      "http": { "code": 200, "ms": 465, "markerFound": true },
+      "http": { "code": 200, "ms": 491, "markerFound": true },
       "unresolved": 1,
       "delta": "+0",
       "topIssues": [
@@ -56,6 +56,7 @@
   "history": [
     { "date": "2026-08-16", "healthy": 3, "warning": 2, "down": 0 },
     { "date": "2026-08-17", "healthy": 3, "warning": 2, "down": 0 },
-    { "date": "2026-08-19", "healthy": 3, "warning": 2, "down": 0 }
+    { "date": "2026-08-19", "healthy": 3, "warning": 2, "down": 0 },
+    { "date": "2026-08-21", "healthy": 3, "warning": 2, "down": 0 }
   ]
 }
