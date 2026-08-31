@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-08-28T03:34:35Z",
-  "headline": "All quiet — nothing changed since the last report. ApplyKit and Athlon still carry their same two long-standing issues (an ENOENT file error and a stale WebView postMessage error), unchanged in count. All 5 apps are up and responding normally, with no new problems and no traffic surprises.",
-  "counts": { "healthy": 3, "warning": 2, "down": 0 },
+  "generatedAt": "2026-08-31T03:34:18Z",
+  "headline": "Good news: Athlon's WebView postMessage error has cleared, so it's back to healthy. ApplyKit still carries its same old ENOENT file error (unchanged count), and all 5 apps are up and responding normally with no new issues or traffic surprises.",
+  "counts": { "healthy": 4, "warning": 1, "down": 0 },
   "apps": [
     {
       "name": "ApplyKit",
       "slug": "applykit",
       "status": "warning",
-      "http": { "code": 200, "ms": 2411, "markerFound": true },
+      "http": { "code": 200, "ms": 3326, "markerFound": true },
       "unresolved": 1,
       "delta": "+0",
       "topIssues": [
@@ -18,7 +18,7 @@
       "name": "HankeRadar",
       "slug": "hankeradar",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1535, "markerFound": true },
+      "http": { "code": 200, "ms": 1577, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -27,7 +27,7 @@
       "name": "Hinnavaht",
       "slug": "hinnavaht",
       "status": "healthy",
-      "http": { "code": 200, "ms": 2450, "markerFound": true },
+      "http": { "code": 200, "ms": 2700, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -36,7 +36,7 @@
       "name": "Keepr",
       "slug": "keepr",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1685, "markerFound": true },
+      "http": { "code": 200, "ms": 1157, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -44,20 +44,18 @@
     {
       "name": "Athlon",
       "slug": "athlon",
-      "status": "warning",
-      "http": { "code": 200, "ms": 434, "markerFound": true },
-      "unresolved": 1,
-      "delta": "+0",
-      "topIssues": [
-        { "title": "Error: Error invoking postMessage: Java object is gone", "count": "1", "permalink": "https://bits-and-pixels-ou.sentry.io/issues/137481801/" }
-      ]
+      "status": "healthy",
+      "http": { "code": 200, "ms": 466, "markerFound": true },
+      "unresolved": 0,
+      "delta": "-1",
+      "topIssues": []
     }
   ],
   "history": [
-    { "date": "2026-08-19", "healthy": 3, "warning": 2, "down": 0 },
     { "date": "2026-08-21", "healthy": 3, "warning": 2, "down": 0 },
     { "date": "2026-08-24", "healthy": 3, "warning": 2, "down": 0 },
     { "date": "2026-08-26", "healthy": 3, "warning": 2, "down": 0 },
-    { "date": "2026-08-28", "healthy": 3, "warning": 2, "down": 0 }
+    { "date": "2026-08-28", "healthy": 3, "warning": 2, "down": 0 },
+    { "date": "2026-08-31", "healthy": 4, "warning": 1, "down": 0 }
   ]
 }
