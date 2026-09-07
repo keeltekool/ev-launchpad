@@ -1,22 +1,22 @@
 {
-  "generatedAt": "2026-09-04T03:40:00Z",
-  "headline": "Good news: ApplyKit's lingering ENOENT file error is gone, and all 5 apps are healthy for the first time in a while. ApplyKit also saw a big traffic jump, 165 requests today versus a handful on most recent days, worth keeping an eye on but nothing's broken. Everything else is quiet, no new errors anywhere.",
+  "generatedAt": "2026-09-07T03:40:00Z",
+  "headline": "All quiet again today: all 5 apps are healthy with zero unresolved errors, same as the last report. Response times are all fine, the slowest being HankeRadar at about 5.6 seconds. Traffic looks normal across the board, nothing worth flagging.",
   "counts": { "healthy": 5, "warning": 0, "down": 0 },
   "apps": [
     {
       "name": "ApplyKit",
       "slug": "applykit",
       "status": "healthy",
-      "http": { "code": 200, "ms": 2628, "markerFound": true },
+      "http": { "code": 200, "ms": 2114, "markerFound": true },
       "unresolved": 0,
-      "delta": "-1",
+      "delta": "+0",
       "topIssues": []
     },
     {
       "name": "HankeRadar",
       "slug": "hankeradar",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1648, "markerFound": true },
+      "http": { "code": 200, "ms": 5565, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -25,7 +25,7 @@
       "name": "Hinnavaht",
       "slug": "hinnavaht",
       "status": "healthy",
-      "http": { "code": 200, "ms": 2225, "markerFound": true },
+      "http": { "code": 200, "ms": 2462, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -34,7 +34,7 @@
       "name": "Keepr",
       "slug": "keepr",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1195, "markerFound": true },
+      "http": { "code": 200, "ms": 1102, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -43,7 +43,7 @@
       "name": "Athlon",
       "slug": "athlon",
       "status": "healthy",
-      "http": { "code": 200, "ms": 507, "markerFound": true },
+      "http": { "code": 200, "ms": 790, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -55,6 +55,7 @@
     { "date": "2026-08-28", "healthy": 3, "warning": 2, "down": 0 },
     { "date": "2026-08-31", "healthy": 4, "warning": 1, "down": 0 },
     { "date": "2026-09-02", "healthy": 4, "warning": 1, "down": 0 },
-    { "date": "2026-09-04", "healthy": 5, "warning": 0, "down": 0 }
+    { "date": "2026-09-04", "healthy": 5, "warning": 0, "down": 0 },
+    { "date": "2026-09-07", "healthy": 5, "warning": 0, "down": 0 }
   ]
 }
