@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-09-11T03:34:43Z",
-  "headline": "All quiet: all 5 apps are healthy with zero unresolved errors, same as the last report. Every app responded with a 200 and its marker, with Athlon fastest at under 400ms and Hinnavaht the slowest at about 2.3 seconds. ApplyKit had the busiest day (23 requests today, 75 over the last week), with HankeRadar also seeing steady traffic.",
+  "generatedAt": "2026-09-14T03:35:00Z",
+  "headline": "All quiet: all 5 apps are healthy with zero unresolved errors, same as the last report. Every app responded with a 200 and its marker, with Athlon fastest at under 500ms and ApplyKit the slowest at about 2.4 seconds. ApplyKit remains the busiest app (95 requests over the last week, 9 today), with HankeRadar also seeing solid weekly traffic (72 requests) though quiet today.",
   "counts": { "healthy": 5, "warning": 0, "down": 0 },
   "apps": [
     {
       "name": "ApplyKit",
       "slug": "applykit",
       "status": "healthy",
-      "http": { "code": 200, "ms": 2697, "markerFound": true },
+      "http": { "code": 200, "ms": 2350, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -16,7 +16,7 @@
       "name": "HankeRadar",
       "slug": "hankeradar",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1433, "markerFound": true },
+      "http": { "code": 200, "ms": 1525, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -25,7 +25,7 @@
       "name": "Hinnavaht",
       "slug": "hinnavaht",
       "status": "healthy",
-      "http": { "code": 200, "ms": 2296, "markerFound": true },
+      "http": { "code": 200, "ms": 2123, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -34,7 +34,7 @@
       "name": "Keepr",
       "slug": "keepr",
       "status": "healthy",
-      "http": { "code": 200, "ms": 1118, "markerFound": true },
+      "http": { "code": 200, "ms": 1033, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -43,7 +43,7 @@
       "name": "Athlon",
       "slug": "athlon",
       "status": "healthy",
-      "http": { "code": 200, "ms": 388, "markerFound": true },
+      "http": { "code": 200, "ms": 460, "markerFound": true },
       "unresolved": 0,
       "delta": "+0",
       "topIssues": []
@@ -56,6 +56,7 @@
     { "date": "2026-09-04", "healthy": 5, "warning": 0, "down": 0 },
     { "date": "2026-09-07", "healthy": 5, "warning": 0, "down": 0 },
     { "date": "2026-09-09", "healthy": 5, "warning": 0, "down": 0 },
-    { "date": "2026-09-11", "healthy": 5, "warning": 0, "down": 0 }
+    { "date": "2026-09-11", "healthy": 5, "warning": 0, "down": 0 },
+    { "date": "2026-09-14", "healthy": 5, "warning": 0, "down": 0 }
   ]
 }
