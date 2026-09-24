@@ -1,5 +1,15 @@
 [
   {
+    "name": "Radar-Check",
+    "image": "screenshots/radar-check.png",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://radar-check.vercel.app"
+      }
+    ]
+  },
+  {
     "name": "Athlon",
     "image": "screenshots/athlon.png",
     "links": [
