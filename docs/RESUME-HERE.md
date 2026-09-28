@@ -10,7 +10,6 @@
 ### Working projects (Sentry SDK installed + verified)
 | Project | Slug | Status |
 |---------|------|--------|
-| Keeletark | `keeletark` | GREEN, data flowing |
 | ApplyKit | `applykit` | GREEN, 44 requests/7d |
 | HankeRadar | `hankeradar` | GREEN, 25 requests/7d |
 | Travel-Assist-Poland | `travel-assist-poland` | GREEN, 6 requests |

@@ -3,7 +3,6 @@ const SENTRY_BASE = 'https://de.sentry.io/api/0';
 
 const PROJECTS = [
   { name: 'Travel-Assist-Poland', slug: 'travel-assist-poland', appUrl: 'https://travel-assist-poland.vercel.app' },
-  { name: 'Keeletark', slug: 'keeletark', appUrl: 'https://keeletark.vercel.app' },
   { name: 'ApplyKit', slug: 'applykit', appUrl: 'https://cv-tailor-plus.vercel.app' },
   { name: 'SongDrop-app', slug: 'songdrop-app', appUrl: 'https://songdrop-app.vercel.app' },
   { name: 'HankeRadar', slug: 'hankeradar', appUrl: 'https://hankeradar-alpha.vercel.app' },
