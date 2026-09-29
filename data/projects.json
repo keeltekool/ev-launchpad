@@ -256,10 +256,6 @@
       {
         "label": "App",
         "url": "https://eudi-wallet-tracker.vercel.app"
-      },
-      {
-        "label": "Admin",
-        "url": "https://eudi-wallet-tracker.vercel.app/admin"
       }
     ]
   },
