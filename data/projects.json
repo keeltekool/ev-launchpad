@@ -250,6 +250,16 @@
     ]
   },
   {
+    "name": "Scrapyard",
+    "image": "screenshots/scrapyard.png",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://scrapyard-ten.vercel.app"
+      }
+    ]
+  },
+  {
     "name": "EUDI Wallet Tracker",
     "image": "screenshots/eudi-wallet-tracker.png",
     "links": [
