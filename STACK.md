@@ -1,46 +1,36 @@
-# Launchpad — Personal Project Dashboard
+# Launchpad: is anything of mine broken right now?
 
-**Live:** https://ev-launchpad.vercel.app
-**Repo:** https://github.com/keeltekool/ev-launchpad
-**Type:** Static HTML/CSS/JS (zero dependencies, no build step) + one Vercel function (`api/health.js`)
-**Last updated:** 2026-08-16
+**Live:** https://ev-launchpad.vercel.app (passcode; a `?key=<passcode>` link sets a one-year cookie)
+**Repo:** https://github.com/keeltekool/ev-launchpad (Vercel project `launchpad`, framework Next.js)
+**Type:** Next.js 16.4.3 (App Router, Cache Components, Turbopack), Tailwind v4, Archivo
+**Last updated:** 2026-10-23 (rebuilt from the old static tile wall; spec `SPEC.md`, product `PRODUCT.md`, look `DESIGN.md`, plan `docs/plans/2026-10-23-launchpad-rebuild-sentry.md`)
 
 ## Services
 
 | Service | Purpose | Env vars |
 |---------|---------|----------|
-| Vercel | Static hosting, auto-deploy from GitHub | `SENTRY_AUTH_TOKEN` (used by `api/health.js`) |
-| GitHub | keeltekool/ev-launchpad | — |
-| Sentry | Error/traffic data for `/monitor` (org `bits-and-pixels-ou`, EU) | token in Vercel only |
-| Anthropic RemoteTrigger | Fleet Doctor cloud routine | — |
+| Vercel | Hosting, auto-deploy from GitHub `master` | `SENTRY_AUTH_TOKEN` (org read token, production), `LAUNCHPAD_PASSCODE` (production + preview) |
+| Sentry (org `bits-and-pixels-ou`, EU `de.sentry.io`) | Reads errors and issues for every project; Launchpad's own errors go to project `launchpad` (alert workflow 1410455) | DSN hardcoded in `src/lib/report.ts` |
 
-No database, no auth.
+No database. Local: `vercel env pull .env.local --environment production`.
 
-## Fleet Doctor (autonomous monitoring agent)
+## How it works
+- `data/apps.json`: the registry, `{ name, url, sentry?, status: live|dormant, links[] }` (67 apps). `url` is what gets health-checked; `sentry` is the Sentry project slug.
+- `src/app/page.tsx`: `getBoard()` is `'use cache'` with `cacheLife({ stale: 60, revalidate: 60, expire: 120 })`, streamed behind `<Suspense>`. It runs `getSentrySummary()` (`src/lib/sentry.ts`: project list, unresolved production issues over 7 d, error totals for 24 h and 7 d) and `checkApp()` (`src/lib/health.ts`) for every live app, then `buildBoard()` (`src/lib/board.ts`).
+- `src/proxy.ts`: every route needs the cookie `lp_pass` (sha256 of the passcode). `/unlock` posts to `/api/unlock`. Fails closed without `LAUNCHPAD_PASSCODE`.
+- `src/lib/report.ts`: Launchpad's own failures go to Sentry as a plain envelope POST (no SDK), from `src/instrumentation.ts` (`onRequestError`) and `src/app/global-error.tsx`.
+- `scripts/sentry-proof.mjs <slug> <url>`: opens an app and waits for a production transaction in Sentry (PASS/FAIL).
 
-Cloud routine `trig_01YTjYDs3ZzsGbu3cxrNQzKL` — Mon/Wed/Fri 03:30 UTC, model pinned `claude-sonnet-5` (hard rule: never Fable/Opus). Checks the 5 apps in `data/fleet.json` (Sentry via `/api/health` + HTTP/marker checks), commits `data/fleet-report.json` → auto-deploy renders the pane on `monitor.html`. Read-only, no autofix (v2). Alerts: GitHub issue on this repo only when RED (app down / genuinely NEW issue; first-appearance baseline never alerts). Plan + diagram: `docs/plans/fleet-doctor-v1.md`. Manage: `/schedule` or claude.ai/code/routines.
-
-**Smoke test:** `curl -s https://ev-launchpad.vercel.app/data/fleet-report.json | node -e "JSON.parse(require('fs').readFileSync(0))"` + pane visible on `/monitor.html`.
-
-## What it does
-
-Dense visual grid dashboard for quick-access to all 45+ live projects. Each tile shows a screenshot thumbnail, project name, and clickable link chips (App, Admin, Landing, etc.). Includes live search filtering, dark/light mode toggle, and keyboard shortcuts (`/` to search, `Escape` to clear).
-
-## Data model
-
-Single JSON file (`data/projects.json`) — array of `{ name, image, links: [{ label, url }] }`. Order in JSON = order in grid.
-
-## Sync workflow
-
-`/launchpad` skill: fetches portfolio (egertv.vercel.app PROJECTS tab), diffs against projects.json, adds new entries, captures screenshots via Puppeteer, deploys.
+## Checks
+- `npm test`: board ordering and merge, 401/403 count as up, registry validity.
+- `node scripts/check-ui-flows.mjs <url>`: passcode wrong/right, reload, entry, `/` search and Esc, Dormant, theme survives reload, a link chip matches the registry, no sideways scroll at 375, a 1920 screenshot. `ship.mjs` runs it.
 
 ## Gotchas
+- A `use cache` lifetime under 5 minutes is runtime data in Next 16: it must sit inside `<Suspense>`, or the build fails at prerender.
+- Health check: GET with `Accept: text/html`, following redirects by hand up to 5 hops. A still-redirecting answer counts as up, because Clerk apps answer 404 to non-page requests and loop their cookie handshake without a cookie jar. 401/403 count as up.
+- Sentry `stats_v2` grouped by project returns totals only (no series), so 24 h and 7 d are separate calls.
+- Production on Vercel reports as environment `vercel-production`; the board accepts it and `production`.
+- `npm install` on this machine can fail with ENOTEMPTY while VS Code watches `node_modules`; install in a separate folder and move `node_modules` in.
 
-- Vercel URL alias: `ev-launchpad.vercel.app` (configured as project domain, auto-tracks prod)
-- Screenshots captured at 1280x800 via Puppeteer headless — some apps with Clerk auth show login pages
-- SÕEL slug becomes `s-el.png` (special chars stripped)
-- Puppeteer not committed — install temporarily when re-capturing: `npm i puppeteer`, run script, uninstall
-
-## Next phase
-
-Project health dashboard: GitHub analytics, error monitoring, API failure tracking per project.
+## Smoke test
+`node ~/.claude/scripts/ship.mjs /` (verify-deploy on `/` lands on `/unlock`, then check-ui-flows logs in).

@@ -33,6 +33,7 @@ Replaces Task 1.6, Gate 1 and Phase 3. Phase 2 (Launchpad) runs after Phase R2 a
 
 ### Phase R1: the watched list
 - [ ] **R1.1: propose the list from data, owner confirms or edits.** Signals: Vercel requests over the last 23 h without headless Chromium (`vercel metrics vercel.request.count -p <project> --since 23h --filter 'NOT clientUserAgent:*HeadlessChrome*'`; Hobby allows only ~24 h, one project per query), Sentry real-browser pageloads over 30 d, and what each app runs unattended (crons, agents, scrapers, outside APIs). Browser history is not used (blocked as personal data). Done when: the owner's confirmed list is written here.
+  - Proposed 23.10, NOT yet confirmed by the owner (requests over 24 h without headless): Keepr 1415 (done), Käsilane 346, Keila Leht Ultra 193, Tube_Heureka 147, ApplyKit 139, Mini Me 131, Livery 85, Athlon 65, VAIB 47, Market Watch 36 (Sentry on, catch sites not done), Hinnavaht 13 (done; polls and digests run twice a day). Everything else gets uptime only on Launchpad. HOOG (`event-radar`, 151) and SOEL (101) are crawlers and crons (HOOG unchanged since March, SOEL dormant).
 
 ### Phase R2: real failures reach Sentry, per watched app
 - [ ] **R2.1: per app, one repo at a time (repo lock as above).**
