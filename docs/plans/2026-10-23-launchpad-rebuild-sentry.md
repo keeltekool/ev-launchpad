@@ -28,7 +28,22 @@
   - 23.10 PASS: applykit `d8e06df`, category-pro `fa6926f`, hankeradar `7410f5b` (its root init files were dead too; moved to `src/`), travel-assist-poland `1d9b0ea`, songdrop-app `a3c9504` (first Sentry data ever). Athlon not done (another session was running its tests). Still to do: hinnavaht, keepr and applykit import `withSentryConfig` from `@sentry/nextjs`, which is deprecated (see the standard); switch them to `@sentry/nextjs/config`.
   - 23.10 owner, after this: "the currrent list of sentry apps is not bible, I am not intetrtestred in volume ... i am intetrested in getting sentriy actually useful and the launchpad actually useful". Finding: in the last 14 d Sentry holds 3 unresolved issues, all from local dev (`javascript-nextjs`), and none from production. Proposed reset, waiting for the owner's go: a short app list chosen by real use; report the failures the apps swallow (API try/catch, crons, scrapers, outside APIs) and prove each one by triggering it and getting the email; alerts; then the Launchpad page. It would replace the rest of Phase 1 and all of Phase 3.
   - ApplyKit (23.10): `src/instrumentation.ts` imports the root `sentry.server/edge.config.ts`, so those are live; the dead ones are root `instrumentation.ts` and `instrumentation-client.ts`. All four root files go, the server and edge configs move to `src/`.
-- [ ] **Task 1.6: alert rules.** For each project: if `sentry alert issues list` shows no rule, create one: `sentry alert issues create bits-and-pixels-ou/<slug> --name "New issue → email"` with the first-seen condition and an email action to the owner (exact flags from `sentry alert issues create --help`).
+## Reset (owner go 23.10: "Yes yes to allll!")
+Replaces Task 1.6, Gate 1 and Phase 3. Phase 2 (Launchpad) runs after Phase R2 and is built for the watched list. Tasks 1.1–1.5 stay as the record of what shipped.
+
+### Phase R1: the watched list
+- [ ] **R1.1: propose the list from data, owner confirms or edits.** Signals: Vercel requests over the last 23 h without headless Chromium (`vercel metrics vercel.request.count -p <project> --since 23h --filter 'NOT clientUserAgent:*HeadlessChrome*'`; Hobby allows only ~24 h, one project per query), Sentry real-browser pageloads over 30 d, and what each app runs unattended (crons, agents, scrapers, outside APIs). Browser history is not used (blocked as personal data). Done when: the owner's confirmed list is written here.
+
+### Phase R2: real failures reach Sentry, per watched app
+- [ ] **R2.1: per app, one repo at a time (repo lock as above).**
+  1. Inventory where the app swallows failures: API route `catch` blocks that return an error response or only log, cron/poll/scrape jobs, outside API calls (AI, email, scrapers, payment).
+  2. Report each one with `Sentry.captureException(err, { tags: { area: "<route or job>" } })` at that spot. Failures only; nothing else gets reported.
+  3. The app's Sentry wiring follows the standard (projects that don't exist yet get created).
+  4. Alert rule: new issue → email, regressed issue → email (`sentry alert issues create`, flags from `--help`).
+  5. Proof: trigger one real handled failure in production without touching real data. The issue arrives with its `area` tag, and the rule's fire history (`sentry api projects/<org>/<slug>/rules/<id>/group-history/`) shows the email was sent.
+- **Gate R2:** every watched app has a triggered issue and a fired alert on record; build, `ship.mjs`, and `code-reviewer` on each app's diff.
+
+- [ ] **Task 1.6 (superseded by R2.1 step 4): alert rules.** For each project: if `sentry alert issues list` shows no rule, create one: `sentry alert issues create bits-and-pixels-ou/<slug> --name "New issue → email"` with the first-seen condition and an email action to the owner (exact flags from `sentry alert issues create --help`).
 
 **Gate 1:** `sentry-proof` PASS for all 9 projects. `sentry project list` shows only real apps, and each one lists exactly one alert rule. Every repo builds and is shipped and verified by `ship.mjs`. `code-reviewer` runs on the phase's commits per repo (inputs: repo paths, SPEC.md, this plan, commit ranges). Owner sees: Sentry with only real apps and data from production only.
 
@@ -55,7 +70,7 @@
 
 **Gate 2:** clean build; `node --test` for board logic; `check-ui-flows.mjs` passes against the production URL after `ship.mjs`; `code-reviewer` on the `rebuild` branch diff. The branch merges to main and ships. Owner sees: the new Launchpad at ev-launchpad.vercel.app.
 
-## Phase 3: every other live app reports to Sentry
+## Phase 3: every other live app reports to Sentry (dropped by the 23.10 reset; apps off the watched list get uptime only)
 - [ ] **Task 3.1:** for each of these: prindipesa, mindloop, idea-radar, livery, vaib, vaib-x, skill4win, build-in-sight, spordipaev, career-recall-standard (`career-recall`), radar-check, eudi-wallet-tracker, scrapyard, lonkero-cruise-hki, loop-control-center, keila-leht-ultra, tube-heureka, iphone-converter (`fileshift`, static export: client init only), kasilane, mini-me.
   1. Lock the repo.
   2. `sentry project create bits-and-pixels-ou/<slug>:javascript-nextjs`.
