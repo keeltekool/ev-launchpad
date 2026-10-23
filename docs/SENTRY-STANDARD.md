@@ -29,9 +29,10 @@ Put them where `app/` lives: in `src/` if the project has `src/app`, otherwise a
 
 ```ts
 // next.config.ts
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 export default withSentryConfig(nextConfig, { org: "bits-and-pixels-ou", project: "<slug>", silent: !process.env.CI });
 ```
+- Import `withSentryConfig` from `@sentry/nextjs/config`. In 10.76.2 the export from `@sentry/nextjs` is a deprecated wrapper (`build/cjs/config/deprecatedWithSentryConfig.js`) that prints a warning on every build and is removed in v11 (correction 23.10, found in the category-pro build log).
 - No `tunnelRoute`. Source maps are not uploaded: that needs a Sentry token per Vercel project, a later step.
 - Static-export apps (`output: "export"`, e.g. Fileshift) get only `instrumentation-client.ts` and `global-error.tsx`. There is no server.
 
