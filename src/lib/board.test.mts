@@ -85,3 +85,21 @@ test("Sentry: junk projects are dropped; a new issue is the one shown, not the l
   assert.equal(s.bySlug.keepr.newest?.title, "New");
   assert.equal(s.bySlug.keepr.errors24h, 4);
 });
+
+test("report: nothing outside Vercel production; one event per failure kind per minute", async () => {
+  let posts = 0;
+  globalThis.fetch = (async () => {
+    posts++;
+    return new Response("{}");
+  }) as typeof fetch;
+  const { report } = await import("./report.ts");
+  delete process.env.VERCEL_ENV;
+  await report("test:local", new Error("x"));
+  assert.equal(posts, 0);
+  process.env.VERCEL_ENV = "production";
+  await report("test:a", new Error("first"));
+  await report("test:a", new Error("same kind, within the minute"));
+  await report("test:a", new Error("another kind"), { kind: "all" });
+  delete process.env.VERCEL_ENV;
+  assert.equal(posts, 2);
+});
