@@ -88,6 +88,7 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
     await p.locator('body').click({ position: { x: 5, y: 5 } });
     await p.keyboard.press('/');
     check('/ focuses the search field', await p.evaluate(() => document.activeElement?.id === 'find'));
+    check('the focused search field shows its ring', await p.evaluate(() => getComputedStyle(document.activeElement).outlineStyle === 'solid'));
     await p.keyboard.type('keepr');
     const filtered = await rows.count();
     check('typing filters the rows', filtered >= 1 && filtered < total, `${filtered} of ${total}`);
@@ -161,9 +162,12 @@ async function fixtures() {
   });
   await new Promise((r) => fake.listen(0, '127.0.0.1', r));
   const fx = `http://127.0.0.1:${fake.address().port}`;
-  const broken = [['Fixture 500', '/500'], ['Fixture hang', '/hang']].map(([name, path]) => ({ name, url: fx + path, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }));
+  const broken = [['Fixture 500', `${fx}/500`], ['Fixture hang', `${fx}/hang`], ['Fixture refused', 'http://127.0.0.1:9/']]
+    .map(([name, url]) => ({ name, url, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }));
 
   const serve = async (port, env) => {
+    // A leftover server on the port would be tested in place of this build and env.
+    if (await fetch(`http://localhost:${port}/unlock`).then(() => true, () => false)) throw new Error(`port ${port} is busy: stop the old server first`);
     const child = spawn(process.execPath, [join(ROOT, 'node_modules/next/dist/bin/next'), 'start', '-p', String(port)], {
       cwd: ROOT, stdio: 'ignore', env: { ...process.env, VERCEL_ENV: 'development', ...env }, // development: report() stays silent
     });
@@ -192,6 +196,7 @@ async function fixtures() {
         check(`${label}: the Problems block renders`, (await p.locator('#trouble').count()) === 1);
         check(`${label}: a 500 reads "Down: answered 500"`, (await entry('Fixture 500').innerText()).includes('Down: answered 500'));
         check(`${label}: a hang reads "no answer within 10 s"`, (await entry('Fixture hang').innerText()).includes('Down: no answer within 10 s'));
+        check(`${label}: a refused connection reads "no connection"`, (await entry('Fixture refused').innerText()).includes('Down: no connection'));
         const fresh = entry('fixture-new').getByRole('link', { name: 'FixtureError: fixture-new broke' });
         check(`${label}: a new Sentry issue is listed and links to Sentry`, (await fresh.getAttribute('href')) === 'https://sentry.test/fixture-new');
         check(`${label}: the ledger strikes the down app and marks the new issue`,

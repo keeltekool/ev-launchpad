@@ -1,5 +1,5 @@
-// SENTRY_API is only set by check-ui-flows' fixture server.
-const API = process.env.SENTRY_API ?? "https://de.sentry.io/api/0/organizations/bits-and-pixels-ou";
+// SENTRY_API is only set by check-ui-flows' fixture server, and ignored in production so the token never leaves for another host.
+const API = (process.env.VERCEL_ENV !== "production" && process.env.SENTRY_API) || "https://de.sentry.io/api/0/organizations/bits-and-pixels-ou";
 // ponytail: junk projects waiting for the owner's delete (plan Task 1.1); drop this line once they are gone.
 const RETIRED = new Set(["javascript-nextjs", "keeletark"]);
 
