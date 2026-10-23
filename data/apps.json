@@ -344,6 +344,18 @@
     ]
   },
   {
+    "name": "Launchpad",
+    "url": "https://ev-launchpad.vercel.app",
+    "sentry": "launchpad",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://ev-launchpad.vercel.app"
+      }
+    ]
+  },
+  {
     "name": "Lead Radar",
     "url": "https://lead-radar-two.vercel.app",
     "status": "dormant",

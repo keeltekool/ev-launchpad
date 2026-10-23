@@ -1,69 +1,48 @@
-import Image from "next/image";
+import { Suspense } from "react";
+import { cacheLife } from "next/cache";
+import { registry } from "@/lib/apps";
+import { buildBoard } from "@/lib/board";
+import { checkApp } from "@/lib/health";
+import { getSentrySummary } from "@/lib/sentry";
+import BoardClient from "./board-client";
 
-export default function Home() {
+const live = registry.filter((a) => a.status === "live");
+
+async function getBoard() {
+  "use cache";
+  // Fresh for 60 s and gone after 2 min, so a rare visit re-checks instead of showing an hour-old board.
+  // A lifetime this short is runtime data to Next, hence the Suspense boundary below.
+  cacheLife({ stale: 60, revalidate: 60, expire: 120 });
+  const [sentry, checks] = await Promise.all([
+    getSentrySummary(),
+    Promise.all(live.map(async (a) => [a.name, await checkApp(a.url)] as const)),
+  ]);
+  return buildBoard(registry, sentry, Object.fromEntries(checks));
+}
+
+async function Board() {
+  return <BoardClient board={await getBoard()} />;
+}
+
+// The sheet while the checks run (at most the 10 s health-check timeout).
+function Checking() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="mx-auto max-w-[1760px] px-4 pt-5 md:px-8 md:pt-8">
+      <div className="lg:w-[360px] xl:w-[400px]">
+        <h1 className="form-title border-b-[3px] border-double border-rule-strong pb-3 text-[1.375rem] leading-none md:text-[1.625rem]">Launchpad</h1>
+        <p className="mt-6 text-[1.25rem] font-semibold leading-snug text-ink-2 md:text-[1.5rem]" role="status">
+          Checking {live.length} live apps…
+        </p>
+        <div className="pen-rule mt-3 text-rule-strong" />
+      </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<Checking />}>
+      <Board />
+    </Suspense>
   );
 }
