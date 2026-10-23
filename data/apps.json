@@ -1,0 +1,765 @@
+[
+  {
+    "name": "Alkoholiks API",
+    "url": "https://alkoholiks-api.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://alkoholiks-api.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Allekirjoitus Benchmark",
+    "url": "https://allekirjoitus-competitive-tracker.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://allekirjoitus-competitive-tracker.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Allekirjoitus Sales Tool",
+    "url": "https://allekirjoitus-sales-tool.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://allekirjoitus-sales-tool.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Allekirjoitus.fi V2",
+    "url": "https://allekirjoitus-design-system.vercel.app/website/en/index_v2.html",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://allekirjoitus-design-system.vercel.app/website/en/index_v2.html"
+      }
+    ]
+  },
+  {
+    "name": "Allekirjoitus.fi V3",
+    "url": "https://allekirjoitus-fi-v3.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://allekirjoitus-fi-v3.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "ApplyKit",
+    "url": "https://cv-tailor-plus.vercel.app",
+    "sentry": "applykit",
+    "status": "live",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://cv-tailor-plus.vercel.app"
+      },
+      {
+        "label": "Admin",
+        "url": "https://cv-tailor-plus.vercel.app/en/admin"
+      }
+    ]
+  },
+  {
+    "name": "Athlon",
+    "url": "https://athlon.vercel.app",
+    "sentry": "athlon",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://athlon.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Build in Sight",
+    "url": "https://build-in-sight.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://build-in-sight.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Career Recall",
+    "url": "https://career-recall.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://career-recall.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Category PRO",
+    "url": "https://category-pro.vercel.app",
+    "sentry": "category-pro",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://category-pro.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "CrateDig",
+    "url": "https://crate-dig-two.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://crate-dig-two.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "CV Tailor",
+    "url": "https://cv-tailor-omega.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://cv-tailor-omega.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "DJ Portfolio",
+    "url": "https://dj-portfolio-omega.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://dj-portfolio-omega.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "DJ Recall",
+    "url": "https://dj-recall.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://dj-recall.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "E-Seal Prototype",
+    "url": "https://sk-e-seal-prototype.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://sk-e-seal-prototype.vercel.app"
+      },
+      {
+        "label": "Portal",
+        "url": "https://sk-e-seal-prototype.vercel.app/dashboard"
+      }
+    ]
+  },
+  {
+    "name": "egert_amp",
+    "url": "https://drive-amp.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://drive-amp.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Energiatark",
+    "url": "https://energiatark.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://energiatark.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "EUDI Wallet Tracker",
+    "url": "https://eudi-wallet-tracker.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://eudi-wallet-tracker.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Feedboard Pro",
+    "url": "https://feedboard-pro.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://feedboard-pro.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Fileshift",
+    "url": "https://getfileshift.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://getfileshift.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "GymPal",
+    "url": "https://gym-app-eight-phi.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://gym-app-eight-phi.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "HankeRadar",
+    "url": "https://hankeradar-alpha.vercel.app",
+    "sentry": "hankeradar",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://hankeradar-alpha.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "HindRadar",
+    "url": "https://hind-radar.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://hind-radar.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Hinnavaht",
+    "url": "https://hinnavaht.vercel.app",
+    "sentry": "hinnavaht",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://hinnavaht.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "HOOG",
+    "url": "https://event-radar-six.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://event-radar-six.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Idea Radar",
+    "url": "https://idea-radar-topaz.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://idea-radar-topaz.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Kalkulaator",
+    "url": "https://kalkulaator-six.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://kalkulaator-six.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Keepr",
+    "url": "https://keepr-psi.vercel.app",
+    "sentry": "keepr",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://keepr-psi.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Keila Leht Ultra",
+    "url": "https://keila-leht-ultra.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://keila-leht-ultra.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Käsilane",
+    "url": "https://kasilane.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://kasilane.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Lead Radar",
+    "url": "https://lead-radar-two.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://lead-radar-two.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Livery",
+    "url": "https://livery-sooty.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://livery-sooty.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Lonkero Cruise",
+    "url": "https://lonkero-cruise-hki.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://lonkero-cruise-hki.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Loop Control Center",
+    "url": "https://loop-control-center.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://loop-control-center.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Market Watch",
+    "url": "https://market-watch-seven.vercel.app",
+    "sentry": "market-watch",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://market-watch-seven.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Mindloop",
+    "url": "https://mindloop-henna-omega.vercel.app/preview",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://mindloop-henna-omega.vercel.app/preview"
+      }
+    ]
+  },
+  {
+    "name": "Mini Me",
+    "url": "https://mini-me-amber.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://mini-me-amber.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Personal Finance Tracker",
+    "url": "https://personal-finance-tracker-iota-dusky.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://personal-finance-tracker-iota-dusky.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Pocket Clone",
+    "url": "https://pocket-clone-virid.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://pocket-clone-virid.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "PriceHNTR",
+    "url": "https://price-hntr.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://price-hntr.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Prindipesa",
+    "url": "https://prindipesa.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://prindipesa.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Prop-Radar",
+    "url": "https://prop-radar-one.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://prop-radar-one.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "QuoteKit",
+    "url": "https://quote-kit.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://quote-kit.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Radar-Check",
+    "url": "https://radar-check.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://radar-check.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Rental Business Kit",
+    "url": "https://rental-business-kit.vercel.app/t/mets",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Landing",
+        "url": "https://rental-business-kit.vercel.app/t/mets"
+      },
+      {
+        "label": "Console",
+        "url": "https://rental-business-kit.vercel.app/admin"
+      }
+    ]
+  },
+  {
+    "name": "Saku Tenniseklubi",
+    "url": "https://saku-tennis-revamp.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://saku-tennis-revamp.vercel.app"
+      },
+      {
+        "label": "Admin",
+        "url": "https://saku-tennis-revamp.vercel.app/admin"
+      }
+    ]
+  },
+  {
+    "name": "Scrapyard",
+    "url": "https://scrapyard-ten.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://scrapyard-ten.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Sinu Aed",
+    "url": "https://hind-compare.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://hind-compare.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Skill4Win",
+    "url": "https://skill4win.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://skill4win.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Skrift-CV",
+    "url": "https://skrift-cv.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://skrift-cv.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Smart-ID for Adobe",
+    "url": "https://smartid-adobe-sign-v2.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://smartid-adobe-sign-v2.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "SongDrop Personal",
+    "url": "https://web-seven-ecru-29.vercel.app/egertv",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Guest",
+        "url": "https://web-seven-ecru-29.vercel.app/egertv"
+      },
+      {
+        "label": "DJ Dashboard",
+        "url": "https://web-seven-ecru-29.vercel.app/dashboard"
+      }
+    ]
+  },
+  {
+    "name": "SongDrop SaaS",
+    "url": "https://songdrop-app.vercel.app",
+    "sentry": "songdrop-app",
+    "status": "live",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://songdrop-app.vercel.app/egertv"
+      },
+      {
+        "label": "Admin",
+        "url": "https://songdrop-app.vercel.app/dashboard"
+      },
+      {
+        "label": "Landing",
+        "url": "https://songdrop-landing.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Spordipäev",
+    "url": "https://spordipaev-blond.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://spordipaev-blond.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Spotify Artist Browser",
+    "url": "https://spotify-artist-browser-gamma.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://spotify-artist-browser-gamma.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Spotify Genre Browser",
+    "url": "https://keeltekool.github.io/spotify-discovery/",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://keeltekool.github.io/spotify-discovery/"
+      }
+    ]
+  },
+  {
+    "name": "SÕEL",
+    "url": "https://soel-sigma.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://soel-sigma.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Thesis Showcase",
+    "url": "https://thesis-showcase.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://thesis-showcase.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "TrackID Radar",
+    "url": "https://trackid-radar.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://trackid-radar.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Travel Poland",
+    "url": "https://travel-assist-poland.vercel.app",
+    "sentry": "travel-assist-poland",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://travel-assist-poland.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Trump Roast Lab",
+    "url": "https://trump-roast-lab.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://trump-roast-lab.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "Tube_Heureka",
+    "url": "https://tube-heureka.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://tube-heureka.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "VAIB",
+    "url": "https://vaib-five.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://vaib-five.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "VAIB-X",
+    "url": "https://vaib-x.vercel.app",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://vaib-x.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "WHO DIS?",
+    "url": "https://app-zeta-nine-52.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://app-zeta-nine-52.vercel.app"
+      }
+    ]
+  },
+  {
+    "name": "WHO DIS? The Wall",
+    "url": "https://whodis-screensaver.vercel.app",
+    "status": "dormant",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://whodis-screensaver.vercel.app"
+      }
+    ]
+  }
+]

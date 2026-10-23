@@ -1,9 +1,20 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# env files
+.env*
+
+# vercel
+.vercel
+
+# local only
+.pw-profile/
 Design_Full/
 SPEC-FOR-CLAUDE-DESIGN.md
-node_modules/
-capture-screenshots.mjs
-retry-failed.mjs
-package.json
-package-lock.json
-
-.vercel
+deploy-verify-*.png
