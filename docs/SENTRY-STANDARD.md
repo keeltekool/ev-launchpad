@@ -36,6 +36,16 @@ export default withSentryConfig(nextConfig, { org: "bits-and-pixels-ou", project
 - No `tunnelRoute`. Source maps are not uploaded: that needs a Sentry token per Vercel project, a later step.
 - Static-export apps (`output: "export"`, e.g. Fileshift) get only `instrumentation-client.ts` and `global-error.tsx`. There is no server.
 
+## Real failures (watched apps)
+Init alone only sends crashes and timings. In the 14 days before 23.10, production sent no issues at all, because every failure the apps handle is caught. For each watched app:
+- **Read the app's own decisions first** (`docs/DEVIATIONS.md`, `docs/SPEC.md`, `STACK.md`). Keepr and Hinnavaht ruled out the server SDK because its import breaks their cold-start budget.
+- **`src/lib/report.ts`**: `report(area, err, extra?)` posts an event envelope straight to `https://<ingest host>/api/<project id>/envelope/?sentry_key=<public key>`. It uses no SDK, and the same code runs on the server and in the browser. The event carries `tags.area`, `fingerprint: [area, err.name]` (one issue per failure kind), `environment: vercel-<VERCEL_ENV>` and the commit SHA, and it is sent only when `NODE_ENV=production`. Reference copy: `keepr/src/lib/report.ts`.
+- **Call `report()` where a failure is swallowed:** a `catch` that returns a fallback, a non-OK response from an outside API, a cron send that only counts failures, or a browser fetch that answers 5xx. Expected outcomes (not found, 4xx validation, the user denying permission, an expired link) are not reported.
+- **With no server SDK, `instrumentation.ts` exports `onRequestError`, which calls `report()`.** Uncaught route errors are reported that way.
+- **Under Turbopack the server SDK has no route wrappers, so nothing flushes manually captured events.** If an app keeps the server SDK, follow every manual `captureException` with `await Sentry.flush(2000)`.
+- **Alert:** `sentry alert issues create bits-and-pixels-ou/<slug> --name "New or regressed issue → email" --condition '{"type":"first_seen_event","comparison":true,"conditionResult":true}' --condition '{"type":"regression_event","comparison":true,"conditionResult":true}' --action '{"type":"email","data":{},"config":{"targetType":"user","targetIdentifier":"4286511"}}' --frequency 5`. Fire history: `sentry api organizations/bits-and-pixels-ou/workflows/<id>/group-history/`.
+- **Proof:** trigger one real failure in production without writing data, then see the issue and the workflow's fire history. Keepr: a malformed multipart `POST /api/upload` from a logged-in page produced KEEPR-3 within 1 s and the alert fired.
+
 ## Per app, in order
 1. Check `<repo>/.git/claude-lock` (repo lock), then `git pull`.
 2. `sentry project create` (new apps only) and read the DSN from `sentry project view --json`.

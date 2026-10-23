@@ -41,6 +41,8 @@ Replaces Task 1.6, Gate 1 and Phase 3. Phase 2 (Launchpad) runs after Phase R2 a
   3. The app's Sentry wiring follows the standard (projects that don't exist yet get created).
   4. Alert rule: new issue → email, regressed issue → email (`sentry alert issues create`, flags from `--help`).
   5. Proof: trigger one real handled failure in production without touching real data. The issue arrives with its `area` tag, and the rule's fire history (`sentry api projects/<org>/<slug>/rules/<id>/group-history/`) shows the email was sent.
+  - [x] Keepr `5747c64`: 11 catch sites report (lost scans in `after()`, digest and push sends, Selver/OFF/Haiku/R2, a 5xx from `/api/scan`, the offline flush, push subscribe). Alert workflow 1410266. Proof: KEEPR-3 from a malformed upload, alert fired 19:02Z, then resolved. Server SDK removed again (it broke the locked scan benchmark, Keepr DEVIATIONS §10, which the 1.4 pass missed); replaced by `src/lib/report.ts` (see the standard).
+  - [ ] Hinnavaht: same server-SDK reversal (its SPEC §310 rules the server SDK out), then its catch sites.
 - **Gate R2:** every watched app has a triggered issue and a fired alert on record; build, `ship.mjs`, and `code-reviewer` on each app's diff.
 
 - [ ] **Task 1.6 (superseded by R2.1 step 4): alert rules.** For each project: if `sentry alert issues list` shows no rule, create one: `sentry alert issues create bits-and-pixels-ou/<slug> --name "New issue → email"` with the first-seen condition and an email action to the owner (exact flags from `sentry alert issues create --help`).
