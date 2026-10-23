@@ -15,7 +15,7 @@
 No database. Local: `vercel env pull .env.local --environment production`.
 
 ## How it works
-- `data/apps.json`: the registry, `{ name, url, sentry?, status: live|dormant, links[] }` (67 apps). `url` is what gets health-checked; `sentry` is the Sentry project slug.
+- `data/apps.json`: the registry, `{ name, url, sentry?, status: live|dormant, links[] }` (67 apps). `url` is what gets health-checked; `sentry` is the Sentry project slug. Without it, a Sentry project named after the app (`slugOf`: "Käsilane" → `kasilane`) is the app's project, so wiring an app needs no Launchpad deploy.
 - `src/app/page.tsx`: `getBoard()` is `'use cache'` with `cacheLife({ stale: 60, revalidate: 60, expire: 120 })`, streamed behind `<Suspense>`. It runs `getSentrySummary()` (`src/lib/sentry.ts`: project list, unresolved production issues over 7 d, production error counts for 24 h and 7 d; the junk projects `javascript-nextjs` and `keeletark` are hidden until the owner deletes them) and `checkApp()` (`src/lib/health.ts`) for every live app, then `buildBoard()` (`src/lib/board.ts`).
 - `src/proxy.ts`: every route needs the cookie `lp_pass` (sha256 of the passcode). `/unlock` posts to `/api/unlock`. Fails closed without `LAUNCHPAD_PASSCODE`.
 - `src/lib/report.ts`: Launchpad's own failures go to Sentry as a plain envelope POST (no SDK), from `src/instrumentation.ts` (`onRequestError`) and `src/app/global-error.tsx`. It sends only when `VERCEL_ENV` is `production`.

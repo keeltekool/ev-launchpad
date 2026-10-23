@@ -29,6 +29,12 @@ test("a Sentry project missing from the registry shows as a live row named by it
   assert.deepEqual(board.live.map((r) => [r.name, r.sentry, r.url]), [["Known", "known", "https://known.test"], ["new-app", "new-app", undefined]]);
 });
 
+test("an app without a registry slug takes the Sentry project named after it (no second row)", () => {
+  const board = buildBoard([app("Käsilane"), app("Keila Leht Ultra")], { ok: true, bySlug: { kasilane: issue(true), "keila-leht-ultra": quiet } }, { Käsilane: up, "Keila Leht Ultra": up });
+  assert.deepEqual(board.live.map((r) => [r.name, r.sentry, r.errors?.newIssue24h]), [["Käsilane", "kasilane", true], ["Keila Leht Ultra", "keila-leht-ultra", false]]);
+  assert.deepEqual(board.problems.map((r) => r.name), ["Käsilane"]);
+});
+
 test("Sentry unreachable: health still decides, the flag is off", () => {
   const board = buildBoard([app("A", { sentry: "a" })], { ok: false, bySlug: {} }, { A: up });
   assert.equal(board.sentryOk, false);

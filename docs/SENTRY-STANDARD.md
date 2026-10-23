@@ -45,6 +45,8 @@ Init alone only sends crashes and timings. In the 14 days before 23.10, producti
 - **Under Turbopack the server SDK has no route wrappers, so nothing flushes manually captured events.** If an app keeps the server SDK, follow every manual `captureException` with `await Sentry.flush(2000)`.
 - **Alert:** `sentry alert issues create bits-and-pixels-ou/<slug> --name "New or regressed issue → email" --condition '{"type":"first_seen_event","comparison":true,"conditionResult":true}' --condition '{"type":"regression_event","comparison":true,"conditionResult":true}' --action '{"type":"email","data":{},"config":{"targetType":"user","targetIdentifier":"4286511"}}' --frequency 5`. Fire history: `sentry api organizations/bits-and-pixels-ou/workflows/<id>/group-history/`.
 - **Proof:** trigger one real failure in production without writing data, then see the issue and the workflow's fire history. Keepr: a malformed multipart `POST /api/upload` from a logged-in page produced KEEPR-3 within 1 s and the alert fired.
+- **When every input is validated** (no safe server failure), prove the browser path: open the production page in Playwright, answer one of its API calls with `page.route(..., r => r.fulfill({ status: 503 }))`, and do the action. The request never reaches the server, and the production bundle's `report()` sends the event (Käsilane, KASILANE-2). This also proves `NEXT_PUBLIC_VERCEL_ENV` is set in the bundle.
+- **Name the Sentry project after the app** (`slugOf(name)`: lowercase, no diacritics, hyphens). Launchpad then matches it without a registry edit.
 
 ## Per app, in order
 1. Check `<repo>/.git/claude-lock` (repo lock), then `git pull`.
