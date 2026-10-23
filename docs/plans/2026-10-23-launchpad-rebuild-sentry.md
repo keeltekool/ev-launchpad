@@ -15,11 +15,12 @@
 
 ## Phase 1: clean Sentry, and the 9 existing projects verified working
 - [ ] **Task 1.1: delete junk projects.** `sentry project delete bits-and-pixels-ou/javascript-nextjs -y` and the same for `keeletark`. Done when: `sentry project list bits-and-pixels-ou/ --json` shows neither.
-- [ ] **Task 1.2: write the standard.** `launchpad/docs/SENTRY-STANDARD.md` (create) holds the exact file set, `Sentry.init` options and `withSentryConfig` options, taken from the docs check (Context7, current `@sentry/nextjs`). It replaces the setup section of `POSTMORTEM-SENTRY-SETUP.md`, which stays as history. Done when: every later wiring task can be done by copying from it.
+- [x] **Task 1.2: write the standard.** `launchpad/docs/SENTRY-STANDARD.md` (create) holds the exact file set, `Sentry.init` options and `withSentryConfig` options, taken from the docs check (Context7, current `@sentry/nextjs`). It replaces the setup section of `POSTMORTEM-SENTRY-SETUP.md`, which stays as history. Done when: every later wiring task can be done by copying from it.
 - [ ] **Task 1.3: proof script.** `launchpad/scripts/sentry-proof.mjs <slug> <url>` (create).
   - Opens `<url>` in Playwright Chromium and records the visit time.
-  - Polls `sentry api` (org events/stats for project `<slug>`, environment `production`) until a transaction newer than the visit arrives, with a 180 s timeout.
+  - Polls `sentry api` (org events, project `<slug>`, environment `production` or `vercel-production`) until a transaction newer than the visit arrives, with a 180 s timeout.
   - Prints `PASS <slug> <ms>` or `FAIL <slug> <reason>`, exit code 0 or 1.
+  - Deviation (23.10): transactions live in `dataset=spans` with `is_transaction:true`; `dataset=transactions` returns nothing. On Vercel the SDK names the environment `vercel-production`, so both names count as production. Ingest delay seen: ~90 s. Until Phase 2 adds a `package.json`, the script falls back to the Playwright in `~/.claude/scripts`.
 - [ ] **Task 1.4: bring hinnavaht, keepr and market-watch to the standard.** Repos: `Claude_Projects/<repo>`. Hinnavaht and Keepr get `instrumentation.ts`, server and edge init. Market Watch gets its Sentry project (`sentry project create`) and a hardcoded DSN. All three become production-only. One repo at a time: lock, edit, build, commit, push, `ship.mjs /`, then `sentry-proof`.
 - [ ] **Task 1.5: production-only switch on the rest.** cv-tailor-plus (`applykit`; also delete its dead root-level init files, since `src/` ones win), category-pro, athlon, hankeradar, Travel-Assist-Poland, songdrop-app/web (`songdrop-app`). Same per-repo loop.
 - [ ] **Task 1.6: alert rules.** For each project: if `sentry alert issues list` shows no rule, create one: `sentry alert issues create bits-and-pixels-ou/<slug> --name "New issue → email"` with the first-seen condition and an email action to the owner (exact flags from `sentry alert issues create --help`).
