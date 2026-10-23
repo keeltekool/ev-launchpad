@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { buildBoard } from "./board.ts";
 import { isUp } from "./health.ts";
 import type { AppEntry } from "./apps.ts";
-import type { SentryApp } from "./sentry.ts";
+import { getSentrySummary, type SentryApp } from "./sentry.ts";
 
 const app = (name: string, extra: Partial<AppEntry> = {}): AppEntry => ({ name, url: `https://${name.toLowerCase()}.test`, status: "live", links: [], ...extra });
 const up = { up: true, status: 200, ms: 100 };
@@ -50,4 +50,32 @@ test("registry: every url is https, names and Sentry slugs are unique", () => {
   const slugs = apps.flatMap((a) => (a.sentry ? [a.sentry] : []));
   assert.equal(new Set(names).size, names.length);
   assert.equal(new Set(slugs).size, slugs.length);
+});
+
+// Sentry calls answered from a table keyed by path (projects/, issues/, events/).
+const sentryAnswers = (answers: Record<string, unknown>) => {
+  globalThis.fetch = (async (url: string) => {
+    const path = new URL(url).pathname.split("/").at(-2)!;
+    return path in answers ? Response.json(answers[path]) : new Response("{}", { status: 401 });
+  }) as typeof fetch;
+};
+
+test("Sentry: a bad token leaves no data and the flag off", async () => {
+  sentryAnswers({});
+  assert.deepEqual(await getSentrySummary(), { ok: false, bySlug: {} });
+});
+
+test("Sentry: junk projects are dropped; a new issue is the one shown, not the latest seen", async () => {
+  const now = Date.parse("2026-10-24T00:00:00Z");
+  const issue = (slug: string, title: string, firstSeen: string) => ({ title, permalink: `https://sentry.test/${title}`, firstSeen, lastSeen: "2026-10-23T23:00:00Z", project: { slug } });
+  sentryAnswers({
+    projects: [{ slug: "keepr" }, { slug: "javascript-nextjs" }, { slug: "keeletark" }],
+    issues: [issue("keepr", "Old", "2026-10-01T00:00:00Z"), issue("keepr", "New", "2026-10-23T20:00:00Z"), issue("javascript-nextjs", "Dev", "2026-10-23T20:00:00Z")],
+    events: { data: [{ project: "keepr", "count()": 4 }, { project: "javascript-nextjs", "count()": 33 }] },
+  });
+  const s = await getSentrySummary(now);
+  assert.deepEqual(Object.keys(s.bySlug), ["keepr"]);
+  assert.equal(s.bySlug.keepr.newIssue24h, true);
+  assert.equal(s.bySlug.keepr.newest?.title, "New");
+  assert.equal(s.bySlug.keepr.errors24h, 4);
 });

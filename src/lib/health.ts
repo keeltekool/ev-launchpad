@@ -1,4 +1,4 @@
-export type Health = { up: boolean; status: number | null; ms: number };
+export type Health = { up: boolean; status: number | null; ms: number; timedOut?: boolean };
 
 // 401/403 = the server answered (a login wall or a bot block), so the app is up.
 export const isUp = (status: number) => status < 400 || status === 401 || status === 403;
@@ -21,6 +21,6 @@ export async function checkApp(url: string): Promise<Health> {
     }
     return { up: isUp(r.status), status: r.status, ms: Date.now() - t0 };
   } catch {
-    return { up: false, status: null, ms: Date.now() - t0 };
+    return { up: false, status: null, ms: Date.now() - t0, timedOut: signal.aborted };
   }
 }

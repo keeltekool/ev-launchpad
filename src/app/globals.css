@@ -12,7 +12,7 @@
   --rule-strong: #7f97ae;
   --red: #b3261e;
   --red-wash: #f6dcd8;
-  --focus: #1f5fbf;
+  --focus: var(--ink); /* brand navy by day, pale ink at night */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -25,7 +25,6 @@
     --rule-strong: #3a5274;
     --red: #ff7262;
     --red-wash: #3a1a1c;
-    --focus: #8fb4ff;
     color-scheme: dark;
   }
 }
@@ -38,7 +37,6 @@
   --rule-strong: #3a5274;
   --red: #ff7262;
   --red-wash: #3a1a1c;
-  --focus: #8fb4ff;
   color-scheme: dark;
 }
 

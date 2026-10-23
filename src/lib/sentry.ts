@@ -1,4 +1,7 @@
-const API = "https://de.sentry.io/api/0/organizations/bits-and-pixels-ou";
+// SENTRY_API is only set by check-ui-flows' fixture server.
+const API = process.env.SENTRY_API ?? "https://de.sentry.io/api/0/organizations/bits-and-pixels-ou";
+// ponytail: junk projects waiting for the owner's delete (plan Task 1.1); drop this line once they are gone.
+const RETIRED = new Set(["javascript-nextjs", "keeletark"]);
 
 export type SentryApp = {
   errors24h: number;
@@ -9,8 +12,7 @@ export type SentryApp = {
 export type SentrySummary = { ok: boolean; bySlug: Record<string, SentryApp> };
 
 type Issue = { title: string; permalink: string; firstSeen: string; lastSeen: string; project: { slug: string } };
-// Grouped by project, stats_v2 answers totals only (no series), so 24 h and 7 d are two calls.
-type Stats = { groups: { by: { project: number }; totals: { "sum(quantity)": number } }[] };
+type Counts = { data: { project: string; "count()": number }[] };
 
 async function get<T>(path: string): Promise<T> {
   const r = await fetch(`${API}/${path}`, {
@@ -21,38 +23,36 @@ async function get<T>(path: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
-const errorTotals = (statsPeriod: string) =>
-  get<Stats>(`stats_v2/?${new URLSearchParams({ field: "sum(quantity)", groupBy: "project", category: "error", outcome: "accepted", statsPeriod })}`);
+// Production events only, from every project.
+const production = (params: [string, string][]) =>
+  new URLSearchParams([...params, ["environment", "production"], ["environment", "vercel-production"], ["project", "-1"]]);
+
+const errorCounts = (statsPeriod: string) =>
+  get<Counts>(`events/?${production([["dataset", "errors"], ["field", "project"], ["field", "count()"], ["statsPeriod", statsPeriod], ["per_page", "100"]])}`);
 
 // Four org-level calls. Any failure → { ok: false }: the page still shows health checks and says Sentry is unreachable.
 export async function getSentrySummary(now = Date.now()): Promise<SentrySummary> {
-  const issueQuery = new URLSearchParams({ query: "is:unresolved", statsPeriod: "7d", limit: "100", sort: "date" });
-  issueQuery.append("environment", "production");
-  issueQuery.append("environment", "vercel-production");
   try {
     const [projects, issues, day, week] = await Promise.all([
-      get<{ id: string; slug: string }[]>("projects/"),
-      get<Issue[]>(`issues/?${issueQuery}`),
-      errorTotals("24h"),
-      errorTotals("7d"),
+      get<{ slug: string }[]>("projects/"),
+      // ponytail: first 100 unresolved issues, newest lastSeen first; paginate if one week ever holds more.
+      get<Issue[]>(`issues/?${production([["query", "is:unresolved"], ["statsPeriod", "7d"], ["limit", "100"], ["sort", "date"]])}`),
+      errorCounts("24h"),
+      errorCounts("7d"),
     ]);
     const bySlug: Record<string, SentryApp> = {};
-    const slugById = new Map(projects.map((p) => [Number(p.id), p.slug]));
-    for (const p of projects) bySlug[p.slug] = { errors24h: 0, errors7d: 0, newIssue24h: false };
-    const total = (stats: Stats, key: "errors24h" | "errors7d") => {
-      for (const g of stats.groups) {
-        const app = bySlug[slugById.get(g.by.project) ?? ""];
-        if (app) app[key] = g.totals["sum(quantity)"];
-      }
-    };
-    total(day, "errors24h");
-    total(week, "errors7d");
+    for (const p of projects) if (!RETIRED.has(p.slug)) bySlug[p.slug] = { errors24h: 0, errors7d: 0, newIssue24h: false };
+    for (const c of day.data) if (bySlug[c.project]) bySlug[c.project].errors24h = c["count()"];
+    for (const c of week.data) if (bySlug[c.project]) bySlug[c.project].errors7d = c["count()"];
     for (const i of issues) {
       const app = bySlug[i.project.slug];
       if (!app) continue;
-      if (now - Date.parse(i.firstSeen) < 864e5) app.newIssue24h = true;
-      // Issues come newest lastSeen first, so the first one per project is its newest.
-      app.newest ??= { title: i.title, url: i.permalink, lastSeen: i.lastSeen };
+      const issue = { title: i.title, url: i.permalink, lastSeen: i.lastSeen };
+      // The issue shown is the first one that is new in 24 h, else the most recently seen one.
+      if (!app.newIssue24h && now - Date.parse(i.firstSeen) < 864e5) {
+        app.newIssue24h = true;
+        app.newest = issue;
+      } else app.newest ??= issue;
     }
     return { ok: true, bySlug };
   } catch {

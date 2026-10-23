@@ -68,7 +68,7 @@ export default function BoardClient({ board }: { board: Board }) {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Name"
               autoComplete="off"
-              className="w-full bg-transparent py-1.5 text-[1rem] outline-none placeholder:text-ink-2/70 [&::-webkit-search-cancel-button]:hidden"
+              className="w-full bg-transparent py-1.5 text-[1rem] placeholder:text-ink-2/70 [&::-webkit-search-cancel-button]:hidden"
             />
             <kbd className="form-label rounded-[2px] border border-rule px-1.5 py-0.5" aria-hidden>
               /
@@ -128,7 +128,7 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
       <section className="mt-6 text-ink" aria-label="Status">
         <p className="form-label">{checked}</p>
         <p className="mt-1 text-[1.25rem] font-semibold leading-snug [text-wrap:balance] md:text-[1.5rem]">
-          All {checkedCount} live apps up · no new errors in 24 h
+          All {checkedCount} live apps up · {board.sentryOk ? "no new errors in 24 h" : "errors unknown, Sentry unreachable"}
         </p>
         <div className="pen-rule mt-3" />
       </section>
@@ -145,12 +145,16 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
       <ul className="mt-1">
         {shown.map((r) => (
           <li key={r.name} className="border-b border-rule py-3">
-            <a href={frontDoor(r)} target="_blank" rel="noopener" className="text-[1.0625rem] font-semibold">
-              {r.name}
-            </a>
+            {frontDoor(r) ? (
+              <a href={frontDoor(r)} target="_blank" rel="noopener" className="text-[1.0625rem] font-semibold">
+                {r.name}
+              </a>
+            ) : (
+              <span className="text-[1.0625rem] font-semibold">{r.name}</span>
+            )}
             {r.problems.includes("down") && (
               <p className="mt-0.5 text-[0.9375rem]">
-                Down: {r.health?.status == null ? "no answer within 10 s" : `answered ${r.health.status}`}
+                Down: {r.health?.status != null ? `answered ${r.health.status}` : r.health?.timedOut ? "no answer within 10 s" : "no connection"}
               </p>
             )}
             {r.problems.includes("new error") && r.errors?.newest && (
@@ -189,7 +193,7 @@ function LedgerRow({ row: r }: { row: Row }) {
         {!r.health ? <span className="text-ink-2">—</span> : r.health.up ? <span className="form-label">up</span> : <span className="form-label !font-bold !text-red">down</span>}
       </td>
       <td data-col="ms" className="num text-ink-2">
-        {r.health ? (r.health.status == null ? "10 000+" : r.health.ms.toLocaleString("en-GB").replace(",", " ")) : ""}
+        {r.health ? r.health.ms.toLocaleString("en-GB").replace(",", " ") : ""}
         {r.health && <span className="md:hidden"> ms</span>}
       </td>
       <td data-col="errors" className="num">

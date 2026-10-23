@@ -36,4 +36,4 @@ Archivo (variable, `wdth` axis, latin-ext for Estonian names), tabular figures e
 One authored moment: the entry's rule is drawn in left to right (`.pen-rule`, 700 ms, ease-out expo); double for trouble. Off under `prefers-reduced-motion`. Nothing else animates.
 
 ## Browser surfaces
-Selection is ink on paper, the caret is red, the focus ring is a 2px `--focus` outline, the scrollbar takes the ruling colours, and link underlines use `--rule-strong` and turn to ink on hover.
+Selection is ink on paper, the caret is red, the focus ring is a 2px outline in ink (navy by day, pale at night), inputs included, the scrollbar takes the ruling colours, and link underlines use `--rule-strong` and turn to ink on hover.

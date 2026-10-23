@@ -4,11 +4,14 @@
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
 
 const { chromium } = await import('playwright').catch(() =>
   import(pathToFileURL(join(homedir(), '.claude/scripts/node_modules/playwright/index.mjs')).href));
 
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const BASE = (process.argv[2] ?? process.env.BASE ?? 'http://localhost:4870').replace(/\/$/, '');
 const envFile = new URL('../.env.local', import.meta.url);
 const PASS = process.env.LAUNCHPAD_PASSCODE
@@ -37,9 +40,13 @@ const browser = await chromium.launch();
   check('logged out: / redirects to /unlock', new URL(p.url()).pathname === '/unlock', p.url());
   await p.goto(`${BASE}/?key=wrong-key`);
   check('logged out: a wrong ?key= link is refused', new URL(p.url()).pathname === '/unlock', p.url());
+  const t0 = Date.now();
   await p.goto(`${BASE}/?key=${encodeURIComponent(PASS)}`);
   await p.waitForSelector('table.ledger', { timeout: 30000 });
+  const renderMs = Date.now() - t0;
   check('the right ?key= link unlocks and drops the key from the address', new URL(p.url()).search === '', p.url());
+  // Every outside call is capped at 10 s, so even an uncached board renders in under 15 s.
+  check(`the board renders within 15 s (${renderMs} ms)`, renderMs < 15000, `${renderMs} ms`);
   await ctx.close();
 }
 
@@ -69,9 +76,10 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
   });
 
   await step('status entry', async () => {
-    const allClear = await p.getByText(/^All \d+ live apps up · no new errors in 24 h$/).count();
+    const allClear = await p.getByText(/^All \d+ live apps up · /).count();
     const trouble = await p.locator('#trouble').count();
     check('the problems block or the all-clear line renders', allClear + trouble === 1, `allClear=${allClear} trouble=${trouble}`);
+    check('Sentry is reachable (no "Sentry unreachable" line)', (await p.getByText(/Sentry unreachable/).count()) === 0);
   });
 
   await step('search', async () => {
@@ -127,6 +135,86 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
   await p.screenshot({ path: join(SHOTS, 'board-1920.png') });
   check('1920 screenshot taken', true);
   await ctx.close();
+}
+
+// Fixture board, local runs only: a second server from the same build, fed by a fake Sentry and two broken apps,
+// so the Problems block, the 10 s timeout cap and the "Sentry unreachable" line all run in a real browser.
+if (/^http:\/\/(localhost|127\.0\.0\.1)/.test(BASE)) await fixtures();
+else console.log('\nfixture board: runs against a local build only (node scripts/check-ui-flows.mjs http://localhost:4870)');
+
+async function fixtures() {
+  console.log('\nfixture board');
+  if (!existsSync(join(ROOT, '.next/BUILD_ID'))) return check('fixture board needs a local `next build` first', false);
+  const seen = { firstSeen: new Date(Date.now() - 3600e3).toISOString(), lastSeen: new Date().toISOString() };
+  const sentry = {
+    projects: [{ slug: 'fixture-new' }, { slug: 'keeletark' }],
+    issues: ['fixture-new', 'keeletark'].map((slug) => ({ title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, ...seen, project: { slug } })),
+    events: { data: [{ project: 'fixture-new', 'count()': 2 }, { project: 'keeletark', 'count()': 5 }] },
+  };
+  const fake = createServer((req, res) => {
+    const path = new URL(req.url, 'http://x').pathname;
+    if (path === '/hang') return; // never answers
+    if (path === '/500') return res.writeHead(500).end();
+    const key = path.match(/^\/sentry\/(projects|issues|events)\/$/)?.[1];
+    if (key) return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(sentry[key]));
+    res.writeHead(401).end('{}'); // /broken-sentry/…: a revoked token
+  });
+  await new Promise((r) => fake.listen(0, '127.0.0.1', r));
+  const fx = `http://127.0.0.1:${fake.address().port}`;
+  const broken = [['Fixture 500', '/500'], ['Fixture hang', '/hang']].map(([name, path]) => ({ name, url: fx + path, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }));
+
+  const serve = async (port, env) => {
+    const child = spawn(process.execPath, [join(ROOT, 'node_modules/next/dist/bin/next'), 'start', '-p', String(port)], {
+      cwd: ROOT, stdio: 'ignore', env: { ...process.env, VERCEL_ENV: 'development', ...env }, // development: report() stays silent
+    });
+    for (let i = 0; i < 60; i++) {
+      try { await fetch(`http://localhost:${port}/unlock`); return child; } catch { await new Promise((r) => setTimeout(r, 500)); }
+    }
+    child.kill();
+    throw new Error(`next start on ${port} did not come up`);
+  };
+  const open = async (port, width, height) => {
+    const ctx = await browser.newContext({ viewport: { width, height } });
+    const p = await ctx.newPage();
+    const t0 = Date.now();
+    await p.goto(`http://localhost:${port}/?key=${encodeURIComponent(PASS)}`);
+    await p.waitForSelector('table.ledger', { timeout: 30000 });
+    return { ctx, p, ms: Date.now() - t0 };
+  };
+
+  const a = await serve(4871, { SENTRY_API: `${fx}/sentry`, LAUNCHPAD_EXTRA_APPS: JSON.stringify(broken) });
+  try {
+    for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
+      await step(`fixture ${label}`, async () => {
+        const { ctx, p, ms } = await open(4871, width, height);
+        if (label === '375') check(`a 10 s hang caps the render (${ms} ms)`, ms >= 10000 && ms < 16000, `${ms} ms`);
+        const entry = (name) => p.locator('#trouble ~ ul li', { hasText: name });
+        check(`${label}: the Problems block renders`, (await p.locator('#trouble').count()) === 1);
+        check(`${label}: a 500 reads "Down: answered 500"`, (await entry('Fixture 500').innerText()).includes('Down: answered 500'));
+        check(`${label}: a hang reads "no answer within 10 s"`, (await entry('Fixture hang').innerText()).includes('Down: no answer within 10 s'));
+        const fresh = entry('fixture-new').getByRole('link', { name: 'FixtureError: fixture-new broke' });
+        check(`${label}: a new Sentry issue is listed and links to Sentry`, (await fresh.getAttribute('href')) === 'https://sentry.test/fixture-new');
+        check(`${label}: the ledger strikes the down app and marks the new issue`,
+          (await p.locator('table.ledger tr', { hasText: 'Fixture 500' }).locator('.down-name').count()) === 1
+          && (await p.locator('table.ledger tr', { hasText: 'fixture-new' }).locator('.fresh-issue').count()) === 1);
+        check(`${label}: junk Sentry projects stay hidden`, (await p.getByText('keeletark').count()) === 0);
+        if (width === 375) check('fixture 375: no horizontal scroll', (await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
+        await p.screenshot({ path: join(SHOTS, `fixture-problems-${label}.png`) });
+        await ctx.close();
+      });
+    }
+  } finally { a.kill(); }
+
+  const b = await serve(4872, { SENTRY_API: `${fx}/broken-sentry` });
+  try {
+    await step('fixture unreachable', async () => {
+      const { ctx, p } = await open(4872, 1440, 900);
+      check('Sentry down: the "Sentry unreachable" line shows', (await p.getByText('Sentry unreachable: the error columns are empty').count()) === 1);
+      check('Sentry down: nothing claims "no new errors"', !(await p.locator('body').innerText()).includes('no new errors'));
+      await p.screenshot({ path: join(SHOTS, 'fixture-unreachable-1440.png') });
+      await ctx.close();
+    });
+  } finally { b.kill(); fake.close(); }
 }
 
 await browser.close();
