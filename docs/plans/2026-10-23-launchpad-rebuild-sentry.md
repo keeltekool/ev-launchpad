@@ -1,0 +1,74 @@
+# Launchpad rebuild + Sentry for every live app: build plan
+
+**Goal:** one passcode-gated page that shows which live app is down or throwing new errors, fed by a clean Sentry org that every live app reports to.
+**Spec:** `launchpad/SPEC.md` (all sections).
+**Stack:** Next.js 16.4.3, Tailwind v4, `@sentry/nextjs` 10.76.2 (v10 dist-tag; v11 exists, but a major upgrade across 30 apps is out of scope), Playwright for proofs. Sentry access: CLI `sentry` 0.47.0 (logged in as the owner) for org work; Vercel env `SENTRY_AUTH_TOKEN` for the page.
+
+## Global constraints
+- Sentry org `bits-and-pixels-ou`, API `https://de.sentry.io/api/0`, platform `javascript-nextjs`.
+- Health check: GET, follow redirects, 10 s timeout. Page data cached 60 s; client auto-refresh every 5 min.
+- "New error" = Sentry issue `firstSeen` within 24 h. "Down" = no 2xx/3xx within 10 s.
+- Passcode cookie lasts 365 days. Theme key `launchpad-theme` (carried over).
+- Sentry only on in production. No Sentry on SK E-Seal Prototype, Allekirjoitus Sales Tool or Saku Tenniseklubi (uptime only). SongDrop personal: never touched.
+- Repo lock (parallel windows): `<repo>/.git/claude-lock`. If it is younger than 2 h, skip the repo and come back later. Pull before work.
+- Athlon deploys with `vercel --prod` (sanctioned, no git-integration deploy).
+
+## Phase 1: clean Sentry, and the 9 existing projects verified working
+- [ ] **Task 1.1: delete junk projects.** `sentry project delete bits-and-pixels-ou/javascript-nextjs -y` and the same for `keeletark`. Done when: `sentry project list bits-and-pixels-ou/ --json` shows neither.
+- [ ] **Task 1.2: write the standard.** `launchpad/docs/SENTRY-STANDARD.md` (create) holds the exact file set, `Sentry.init` options and `withSentryConfig` options, taken from the docs check (Context7, current `@sentry/nextjs`). It replaces the setup section of `POSTMORTEM-SENTRY-SETUP.md`, which stays as history. Done when: every later wiring task can be done by copying from it.
+- [ ] **Task 1.3: proof script.** `launchpad/scripts/sentry-proof.mjs <slug> <url>` (create).
+  - Opens `<url>` in Playwright Chromium and records the visit time.
+  - Polls `sentry api` (org events/stats for project `<slug>`, environment `production`) until a transaction newer than the visit arrives, with a 180 s timeout.
+  - Prints `PASS <slug> <ms>` or `FAIL <slug> <reason>`, exit code 0 or 1.
+- [ ] **Task 1.4: bring hinnavaht, keepr and market-watch to the standard.** Repos: `Claude_Projects/<repo>`. Hinnavaht and Keepr get `instrumentation.ts`, server and edge init. Market Watch gets its Sentry project (`sentry project create`) and a hardcoded DSN. All three become production-only. One repo at a time: lock, edit, build, commit, push, `ship.mjs /`, then `sentry-proof`.
+- [ ] **Task 1.5: production-only switch on the rest.** cv-tailor-plus (`applykit`; also delete its dead root-level init files, since `src/` ones win), category-pro, athlon, hankeradar, Travel-Assist-Poland, songdrop-app/web (`songdrop-app`). Same per-repo loop.
+- [ ] **Task 1.6: alert rules.** For each project: if `sentry alert issues list` shows no rule, create one: `sentry alert issues create bits-and-pixels-ou/<slug> --name "New issue → email"` with the first-seen condition and an email action to the owner (exact flags from `sentry alert issues create --help`).
+
+**Gate 1:** `sentry-proof` PASS for all 9 projects. `sentry project list` shows only real apps, and each one lists exactly one alert rule. Every repo builds and is shipped and verified by `ship.mjs`. `code-reviewer` runs on the phase's commits per repo (inputs: repo paths, SPEC.md, this plan, commit ranges). Owner sees: Sentry with only real apps and data from production only.
+
+## Phase 2: Launchpad rebuilt
+- [ ] **Task 2.1: scaffold in place on branch `rebuild`.** `create-next-app` (TypeScript, App Router, Tailwind v4, `src/`). Delete the old static app: `index.html`, `monitor.html`, `js/`, `css/`, `api/`, `screenshots/`, `data/fleet*.json`, `data/projects.json` (after 2.2). Pin the exact `next` version in this plan line once installed.
+- [ ] **Task 2.2: registry.** `data/apps.json` (create): `AppEntry = { name: string; url: string; sentry?: string; status: "live" | "dormant"; links: { label: string; url: string }[] }`. Seed it from the old `projects.json` (47 entries, links unchanged), add the live apps missing from it (global STACK.md Projects table), and set `status` from MEMORY.md "Active projects" versus Dormant. Unit check: every entry has a valid `url`, and slugs are unique.
+- Caching: a fresh Next 16 app has Cache Components on, so `export const revalidate` errors at build. Use `'use cache'` + `cacheLife('minutes')` (revalidate 60 s).
+- [ ] **Task 2.3: Sentry data.** `src/lib/sentry.ts`: `getSentrySummary(): Promise<Record<string, { errors24h: number; errors7d: number; newIssue24h: boolean; newest?: { title: string; url: string; lastSeen: string } }>>`. It makes three org-level calls: project list, unresolved issues over 7 d across all projects, and `stats_v2` errors grouped by project. A failure returns `{}` and sets a "Sentry unreachable" banner flag; the page still renders.
+- [ ] **Task 2.4: health check.** `src/lib/health.ts`: `checkApp(url: string): Promise<{ up: boolean; status: number | null; ms: number }>`, run in parallel for live apps only.
+- [ ] **Task 2.5: board logic.** `src/lib/board.ts`: `buildBoard(apps: AppEntry[], sentry, health): { problems: Row[]; live: Row[]; dormant: AppEntry[]; checkedAt: string }` with the spec's ordering, and with Sentry projects missing from the registry added as live rows. Unit test (pure ordering and merge logic): `src/lib/board.test.ts`, run with `node --test`.
+- [ ] **Task 2.6: the page.** `src/app/page.tsx` (server, 60 s cache) plus `src/app/board-client.tsx` (search with `/` and Esc, Dormant collapse, theme toggle, 5-min refresh). **Design:** run the `impeccable` skill's design path first (CLAUDE.md §4). Mobile first, with real desktop composition at 1440 and 1920.
+- [ ] **Task 2.7: passcode.** `src/proxy.ts` (Next 16 name; confirmed by the docs check) plus `src/app/unlock/page.tsx`. It reads env `LAUNCHPAD_PASSCODE`; a matching form post or `?key=` sets an httpOnly cookie for 365 d. Without the cookie, every route redirects to `/unlock`.
+- [ ] **Task 2.8: Sentry on Launchpad itself,** per the standard. Sentry project `launchpad`.
+- [ ] **Task 2.9: `scripts/check-ui-flows.mjs`** (create). Runs at 375 and 1440:
+  - a wrong passcode is rejected, and the right one unlocks
+  - after a reload the page is still unlocked
+  - the Problems block or the all-clear line renders
+  - `/` focuses search, typing filters the rows, and Esc clears it
+  - Dormant expands
+  - the theme toggle survives a reload
+  - a link chip's href matches the registry
+  - there is no horizontal scroll at 375
+  - a 1920 screenshot is taken
+
+**Gate 2:** clean build; `node --test` for board logic; `check-ui-flows.mjs` passes against the production URL after `ship.mjs`; `code-reviewer` on the `rebuild` branch diff. The branch merges to main and ships. Owner sees: the new Launchpad at ev-launchpad.vercel.app.
+
+## Phase 3: every other live app reports to Sentry
+- [ ] **Task 3.1:** for each of these: prindipesa, mindloop, idea-radar, livery, vaib, vaib-x, skill4win, build-in-sight, spordipaev, career-recall-standard (`career-recall`), radar-check, eudi-wallet-tracker, scrapyard, lonkero-cruise-hki, loop-control-center, keila-leht-ultra, tube-heureka, iphone-converter (`fileshift`, static export: client init only), kasilane, mini-me.
+  1. Lock the repo.
+  2. `sentry project create bits-and-pixels-ou/<slug>:javascript-nextjs`.
+  3. Wire it per the standard, build, commit, push, `ship.mjs /`.
+  4. `sentry-proof` the app, create its alert rule, and set the `sentry` field in `apps.json`.
+
+  Tick each app here as it passes.
+
+**Gate 3:** `sentry-proof` PASS for every app in 3.1. Launchpad shows each one with Sentry numbers and none marked "no Sentry". `code-reviewer` on the union of the phase's commits. Owner sees: every live app on Launchpad with live status and errors.
+
+## Phase 4: finish
+`node ~/.claude/scripts/review.mjs` with a response to every finding; `/simplify`; ship; CLAUDE.md §2 verification; `/wrap-up` (Launchpad STACK.md, global STACK.md, memory `project_launchpad`).
+
+## Review focus
+- Sentry API down or token expired: the page must still show health checks and say Sentry is unreachable (Task 2.3 flag; check-ui-flows covers it by running against a bad token in a preview env).
+- A slow app holding up the whole page: the parallel 10 s timeout caps the render (Task 2.4). Check the total render time in Gate 2.
+- An app that blocks bots or needs a login returns 401/403. A 401/403 counts as "up" (the server answered). This is decided in `checkApp`, covered by the unit test.
+- Error titles holding personal data are behind the passcode (Task 2.7 flow).
+- Sentry quota: production-only plus a transaction sample rate from the standard. Check usage on the billing page after Phase 3.
+
+## Out of scope
+Fleet Doctor, screenshots, Vercel deploy status, GitHub stats, paid Sentry features, Sentry uptime monitors.
