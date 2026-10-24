@@ -33,6 +33,6 @@ Builder, 24.10 ~11:15 Tallinn. Proof: `npm test` 12/12 (two new cases falsified:
 10. **Fixed:** on phones the hover fill is on the whole entry.
 11. **Fixed.**
 12. **Fixed:** "not in Launchpad's registry. Find its repo under C:\Users\Kasutaja\Claude_Projects\ first."
-13. **Open:** the Vercel deploy cap is at 100/100; the next slot frees at 08:45Z, and `ship.mjs` runs then.
+13. **Done:** shipped 24.10 20:50 Tallinn (`24d55ce`, deployment dpl_4225z4cvxNNywbqrmz1KhfoYqNaB); `check-ui-flows` against production 40/40; a real problem (MARKET-WATCH-1) showed as "1 app needs you" with its copy button.
 14. **Checked:** the list also returns `lifetime.count`; the page now uses it and calls it the all-time count (unit test).
 15. **Not fixed:** `ponytail:` comment in `sentry.ts`; the week held 9 production issues on 24.10.
