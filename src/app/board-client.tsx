@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AppLink } from "@/lib/apps";
 import type { Board, Row } from "@/lib/board";
+import { downPrompt, downReason, errorPrompt } from "@/lib/prompt";
 
 const REFRESH_MS = 5 * 60_000;
 const TZ = "Europe/Tallinn";
@@ -11,6 +12,24 @@ const clock = (iso: string) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit
 const date = (iso: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: TZ }).format(new Date(iso));
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const frontDoor = (r: { url?: string; links: AppLink[] }) => r.links[0]?.url ?? r.url;
+const ms = (n: number) => `${n.toLocaleString("en-GB").replace(",", " ")} ms`;
+
+// "13 h ago", measured from the check time so server and browser render the same text.
+function ago(iso: string, from: string) {
+  const min = Math.max(0, Math.round((Date.parse(from) - Date.parse(iso)) / 60_000));
+  if (min < 60) return `${min} min ago`;
+  if (min < 48 * 60) return `${Math.round(min / 60)} h ago`;
+  return `${Math.round(min / 1440)} d ago`;
+}
+
+// "58× · 13 h ago · resolved · queue:waiting"
+function errorMeta(r: Row, checkedAt: string) {
+  const i = r.errors!.latest!;
+  return [`${i.count}×`, ago(i.lastSeen, checkedAt), i.open ? "open" : "resolved", i.area].filter(Boolean).join(" · ");
+}
+
+const problemPrompt = (r: Row, checkedAt: string) =>
+  [r.problems.includes("down") && downPrompt(r, checkedAt), r.problems.includes("new error") && r.errors?.latest && errorPrompt(r)].filter(Boolean).join("\n\n");
 
 export default function BoardClient({ board }: { board: Board }) {
   const router = useRouter();
@@ -39,13 +58,14 @@ export default function BoardClient({ board }: { board: Board }) {
 
   const q = query.trim().toLowerCase();
   const match = (name: string) => !q || name.toLowerCase().includes(q);
-  const live = board.live.filter((r) => match(r.name));
+  const watched = board.watched.filter((r) => match(r.name));
+  const uptime = board.uptime.filter((r) => match(r.name));
   const dormant = board.dormant.filter((a) => match(a.name));
-  const checkedCount = board.live.filter((r) => r.health).length;
+  const checkedCount = [...board.watched, ...board.uptime].filter((r) => r.health).length;
   const checked = clock(board.checkedAt);
 
   return (
-    <div className="mx-auto max-w-[1760px] px-4 pb-16 pt-5 md:px-8 md:pt-8 lg:grid lg:grid-cols-[minmax(300px,360px)_1fr] lg:gap-12 xl:grid-cols-[400px_1fr] xl:gap-16">
+    <div className="mx-auto max-w-[1760px] px-4 pb-16 pt-5 md:px-8 md:pt-8 lg:grid lg:grid-cols-[minmax(300px,380px)_1fr] lg:gap-12 xl:grid-cols-[420px_1fr] xl:gap-16">
       <aside className="lg:sticky lg:top-8 lg:self-start">
         <header className="flex items-start justify-between gap-4 border-b-[3px] border-double border-rule-strong pb-3">
           <div>
@@ -86,25 +106,42 @@ export default function BoardClient({ board }: { board: Board }) {
       </aside>
 
       <main className="mt-8 lg:mt-0">
-        <h2 className="sr-only">Live apps</h2>
-        <table className="ledger text-[0.875rem]">
-          <thead>
-            <tr>
-              <th className="form-label">App</th>
-              <th className="form-label">Status</th>
-              <th className="form-label num">ms</th>
-              <th className="form-label num">Errors 24 h / 7 d</th>
-              <th className="form-label">Latest unresolved issue</th>
-              <th className="form-label">Links</th>
-            </tr>
-          </thead>
-          <tbody>
-            {live.map((r) => (
-              <LedgerRow key={r.name} row={r} />
+        <section aria-labelledby="watched">
+          <h2 id="watched" className="form-label mb-1">
+            Watched by Sentry · {board.watched.length}
+          </h2>
+          <table className="ledger text-[0.875rem]">
+            <thead>
+              <tr>
+                <th className="form-label">App</th>
+                <th className="form-label">Status</th>
+                <th className="form-label">Latest error, 7 days</th>
+                <th className="form-label">
+                  <span className="sr-only">Actions</span>
+                </th>
+                <th className="form-label">Links</th>
+              </tr>
+            </thead>
+            <tbody>
+              {watched.map((r) => (
+                <WatchedRow key={r.name} row={r} board={board} />
+              ))}
+            </tbody>
+          </table>
+          {watched.length === 0 && <p className="border-b border-rule py-3 text-ink-2">No watched app matches “{query.trim()}”.</p>}
+        </section>
+
+        <section aria-labelledby="uptime" className="mt-10">
+          <h2 id="uptime" className="form-label border-b-[3px] border-double border-rule-strong pb-1">
+            Uptime only · {board.uptime.length} <span className="normal-case tracking-normal">(no Sentry: up or down is all Launchpad knows)</span>
+          </h2>
+          <ul className="columns-1 gap-10 text-[0.875rem] sm:columns-2 xl:columns-3">
+            {uptime.map((r) => (
+              <UptimeItem key={r.name} row={r} />
             ))}
-          </tbody>
-        </table>
-        {live.length === 0 && <p className="border-b border-rule py-3 text-ink-2">No live app matches “{query.trim()}”.</p>}
+          </ul>
+          {uptime.length === 0 && <p className="border-b border-rule py-3 text-ink-2">No uptime-only app matches “{query.trim()}”.</p>}
+        </section>
 
         <details className="mt-10 border-t-[3px] border-double border-rule-strong pt-3" open={q && dormant.length ? true : undefined}>
           <summary className="form-label cursor-pointer select-none py-1 hover:text-ink">Dormant ({dormant.length})</summary>
@@ -131,6 +168,9 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
           All {checkedCount} live apps up · {board.sentryOk ? "no new errors in 24 h" : "errors unknown, Sentry unreachable"}
         </p>
         <div className="pen-rule mt-3" />
+        <p className="mt-3 text-[0.875rem] leading-snug text-ink-2">
+          When something breaks, it shows here in red with its error and a prompt to copy into Claude Code.
+        </p>
       </section>
     );
   }
@@ -143,46 +183,66 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
       </h2>
       <div className="pen-rule pen-rule-double mt-3" />
       <ul className="mt-1">
-        {shown.map((r) => (
-          <li key={r.name} className="border-b border-rule py-3">
-            {frontDoor(r) ? (
-              <a href={frontDoor(r)} target="_blank" rel="noopener" className="text-[1.0625rem] font-semibold">
-                {r.name}
-              </a>
-            ) : (
-              <span className="text-[1.0625rem] font-semibold">{r.name}</span>
-            )}
-            {r.problems.includes("down") && (
-              <p className="mt-0.5 text-[0.9375rem]">
-                Down: {r.health?.status != null ? `answered ${r.health.status}` : r.health?.timedOut ? "no answer within 10 s" : "no connection"}
-              </p>
-            )}
-            {r.problems.includes("new error") && r.errors?.newest && (
-              <p className="mt-0.5 text-[0.9375rem]">
-                New error in 24 h:{" "}
-                <a href={r.errors.newest.url} target="_blank" rel="noopener" className="underline decoration-double">
-                  {r.errors.newest.title}
+        {shown.map((r) => {
+          const door = frontDoor(r);
+          const issue = r.problems.includes("new error") ? r.errors?.latest : undefined;
+          return (
+            <li key={r.name} className="border-b border-rule py-3">
+              {door ? (
+                <a href={door} target="_blank" rel="noopener" className="text-[1.0625rem] font-semibold">
+                  {r.name}
                 </a>
-              </p>
-            )}
-            <div className="mt-1 text-ink">
-              <Links links={r.links} />
-            </div>
-          </li>
-        ))}
+              ) : (
+                <span className="text-[1.0625rem] font-semibold">{r.name}</span>
+              )}
+              {r.problems.includes("down") && <p className="mt-0.5 text-[0.9375rem]">Down: {downReason(r)}</p>}
+              {issue && (
+                <>
+                  <p className="mt-0.5 text-[0.9375rem] [overflow-wrap:anywhere]">
+                    New error:{" "}
+                    <a href={issue.url} target="_blank" rel="noopener" className="underline decoration-double">
+                      {issue.title}
+                    </a>
+                  </p>
+                  <p className="mt-1 text-[0.75rem] leading-snug">{errorMeta(r, board.checkedAt)}</p>
+                </>
+              )}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <CopyPrompt text={problemPrompt(r, board.checkedAt)} primary />
+                {issue && (
+                  <a href={issue.url} target="_blank" rel="noopener" className="act">
+                    Sentry
+                  </a>
+                )}
+                {door && (
+                  <a href={door} target="_blank" rel="noopener" className="act">
+                    Open
+                  </a>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
 }
 
-function LedgerRow({ row: r }: { row: Row }) {
-  const down = r.problems.includes("down");
+function Status({ row: r }: { row: Row }) {
+  if (!r.health) return <span className="text-ink-2">—</span>;
+  if (!r.health.up) return <span className="form-label !font-bold !text-red">down</span>;
+  if (r.slow) return <span className="form-label !text-ink" title={ms(r.health.ms)}>slow</span>;
+  return <span className="form-label" title={ms(r.health.ms)}>up</span>;
+}
+
+function WatchedRow({ row: r, board }: { row: Row; board: Board }) {
   const door = frontDoor(r);
+  const issue = r.errors?.latest;
   return (
     <tr>
       <td data-col="name">
         {door ? (
-          <a href={door} target="_blank" rel="noopener" className={down ? "down-name no-underline" : "font-medium no-underline hover:underline"}>
+          <a href={door} target="_blank" rel="noopener" className={r.problems.includes("down") ? "down-name no-underline" : "font-medium no-underline hover:underline"}>
             {r.name}
           </a>
         ) : (
@@ -190,35 +250,74 @@ function LedgerRow({ row: r }: { row: Row }) {
         )}
       </td>
       <td data-col="status">
-        {!r.health ? <span className="text-ink-2">—</span> : r.health.up ? <span className="form-label">up</span> : <span className="form-label !font-bold !text-red">down</span>}
+        <Status row={r} />
       </td>
-      <td data-col="ms" className="num text-ink-2">
-        {r.health ? r.health.ms.toLocaleString("en-GB").replace(",", " ") : ""}
-        {r.health && <span className="md:hidden"> ms</span>}
-      </td>
-      <td data-col="errors" className="num">
-        {!r.sentry ? (
-          <span className="text-ink-2">no Sentry</span>
-        ) : r.errors ? (
-          <span className={r.errors.errors24h ? "font-semibold" : "text-ink-2"}>
-            <span className="form-label mr-1.5 md:hidden">Errors 24 h / 7 d</span>
-            {r.errors.errors24h} / {r.errors.errors7d}
-          </span>
-        ) : (
+      <td data-col="error" className="remark">
+        {!r.errors ? (
           <span className="text-ink-2">—</span>
+        ) : issue ? (
+          <>
+            <a href={issue.url} target="_blank" rel="noopener" title={issue.title} className={r.errors.newIssue24h ? "fresh-issue" : issue.open ? "font-medium" : ""}>
+              {issue.title}
+            </a>
+            <span className={`text-[0.75rem] leading-snug ${issue.open ? "font-medium text-ink" : "text-ink-2"}`}>{errorMeta(r, board.checkedAt)}</span>
+          </>
+        ) : (
+          <span className="text-ink-2">No errors in 7 days</span>
         )}
       </td>
-      <td data-col="remark" className="remark">
-        {r.errors?.newest ? (
-          <a href={r.errors.newest.url} target="_blank" rel="noopener" title={r.errors.newest.title} className={r.errors.newIssue24h ? "fresh-issue" : ""}>
-            {r.errors.newest.title}
-          </a>
-        ) : (
-          ""
-        )}
+      <td data-col="actions">
+        <span className="flex gap-2">
+          {issue && <CopyPrompt text={errorPrompt(r)} />}
+          {r.errors && (
+            <a href={r.errors.projectUrl} target="_blank" rel="noopener" className="act" title={`${r.name}'s errors in Sentry`}>
+              Sentry
+            </a>
+          )}
+        </span>
       </td>
       <td data-col="links">{r.links.length ? <Links links={r.links} /> : <span className="text-ink-2">not in the registry</span>}</td>
     </tr>
+  );
+}
+
+function UptimeItem({ row: r }: { row: Row }) {
+  const door = frontDoor(r);
+  const down = r.problems.includes("down");
+  return (
+    <li className="flex break-inside-avoid items-baseline justify-between gap-3 border-b border-rule py-1.5">
+      <span className="flex items-baseline gap-2">
+        <a href={door} target="_blank" rel="noopener" className={down ? "down-name no-underline" : "no-underline hover:underline"}>
+          {r.name}
+        </a>
+        {(down || r.slow) && <Status row={r} />}
+      </span>
+      {r.links.length > 1 && <Links links={r.links.slice(1)} />}
+    </li>
+  );
+}
+
+// Copies the prompt; says so in place. If the browser refuses the clipboard, the text opens in a box to copy by hand.
+function CopyPrompt({ text, primary }: { text: string; primary?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      window.prompt("Copy this into Claude Code:", text);
+      return;
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button type="button" onClick={copy} className={`act act-copy${primary ? " act-primary" : ""}`}>
+      {/* Both labels share one grid cell, so the button keeps its width when it says Copied. */}
+      <span className={copied ? "invisible" : ""}>Copy for Claude Code</span>
+      <span className={copied ? "" : "invisible"} aria-live="polite">
+        {copied ? "Copied" : ""}
+      </span>
+    </button>
   );
 }
 

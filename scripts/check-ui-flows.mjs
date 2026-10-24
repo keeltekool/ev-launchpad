@@ -52,7 +52,7 @@ const browser = await chromium.launch();
 
 for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
   console.log(`\n${label}px`);
-  const ctx = await browser.newContext({ viewport: { width, height } });
+  const ctx = await browser.newContext({ viewport: { width, height }, permissions: ['clipboard-read', 'clipboard-write'] });
   const p = await ctx.newPage();
   const consoleErrors = [];
   p.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text()));
@@ -112,6 +112,23 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
     check('the theme toggle switches and survives a reload', before !== after && reloaded === after, `${before} → ${after} → ${reloaded}`);
   });
 
+  await step('sections and Sentry actions', async () => {
+    const watched = Number((await p.locator('#watched').innerText()).match(/(\d+)/)?.[1]);
+    const uptime = Number((await p.locator('#uptime').innerText()).match(/(\d+)/)?.[1]);
+    check(`Sentry apps and uptime-only apps are listed apart (${watched} + ${uptime})`, watched > 0 && uptime > 0 && watched + uptime === apps.filter((a) => a.status === 'live').length);
+    const heads = await p.locator('table.ledger thead th').allInnerTexts();
+    check('no milliseconds column, no bare error counts', !heads.some((h) => /^ms$|24 h \/ 7 d/i.test(h.trim())), heads.join('|'));
+    const sentryHrefs = await p.locator('table.ledger td[data-col="actions"] a.act').evaluateAll((as) => as.map((a) => a.href));
+    check(`every watched app has a Sentry button to its issue list (${sentryHrefs.length})`, sentryHrefs.length === watched && sentryHrefs.every((h) => /sentry\.io\/issues\/\?project=\d+/.test(h)));
+    const copy = p.locator('table.ledger td[data-col="actions"] button.act').first();
+    if (await copy.count()) {
+      await copy.click();
+      await copy.getByText('Copied').waitFor({ timeout: 3000 });
+      const text = await p.evaluate(() => navigator.clipboard.readText());
+      check('Copy for Claude Code copies the repo, the error and the Sentry CLI line', text.includes('Claude_Projects\\') && text.includes('Error: ') && text.includes('sentry api organizations/bits-and-pixels-ou/issues/'), text.split('\n')[0]);
+    } else check('no error in 7 days, so no copy button (nothing to check)', true);
+  });
+
   await step('link chip', async () => {
     const app = apps.find((a) => a.status === 'live' && a.links.length > 1);
     const row = p.locator('table.ledger tbody tr', { hasText: app.name }).first();
@@ -146,11 +163,13 @@ else console.log('\nfixture board: runs against a local build only (node scripts
 async function fixtures() {
   console.log('\nfixture board');
   if (!existsSync(join(ROOT, '.next/BUILD_ID'))) return check('fixture board needs a local `next build` first', false);
-  const seen = { firstSeen: new Date(Date.now() - 3600e3).toISOString(), lastSeen: new Date().toISOString() };
+  const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+  const issue = (id, slug, status, firstSeen, lastSeen, count) =>
+    ({ id, shortId: `${slug.toUpperCase()}-1`, title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, count, firstSeen, lastSeen, status, project: { slug } });
   const sentry = {
-    projects: [{ slug: 'fixture-new' }, { slug: 'keeletark' }],
-    issues: ['fixture-new', 'keeletark'].map((slug) => ({ title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, ...seen, project: { slug } })),
-    events: { data: [{ project: 'fixture-new', 'count()': 2 }, { project: 'keeletark', 'count()': 5 }] },
+    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }],
+    issues: [issue('101', 'fixture-new', 'unresolved', ago(1), ago(0), '2'), issue('201', 'keeletark', 'unresolved', ago(1), ago(0), '5'), issue('301', 'fixture-old', 'resolved', ago(72), ago(48), '58')],
+    events: { data: [{ 'issue.id': 101, area: 'fixture:area' }] },
   };
   const fake = createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
@@ -178,7 +197,7 @@ async function fixtures() {
     throw new Error(`next start on ${port} did not come up`);
   };
   const open = async (port, width, height) => {
-    const ctx = await browser.newContext({ viewport: { width, height } });
+    const ctx = await browser.newContext({ viewport: { width, height }, permissions: ['clipboard-read', 'clipboard-write'] });
     const p = await ctx.newPage();
     const t0 = Date.now();
     await p.goto(`http://localhost:${port}/?key=${encodeURIComponent(PASS)}`);
@@ -199,9 +218,21 @@ async function fixtures() {
         check(`${label}: a refused connection reads "no connection"`, (await entry('Fixture refused').innerText()).includes('Down: no connection'));
         const fresh = entry('fixture-new').getByRole('link', { name: 'FixtureError: fixture-new broke' });
         check(`${label}: a new Sentry issue is listed and links to Sentry`, (await fresh.getAttribute('href')) === 'https://sentry.test/fixture-new');
-        check(`${label}: the ledger strikes the down app and marks the new issue`,
-          (await p.locator('table.ledger tr', { hasText: 'Fixture 500' }).locator('.down-name').count()) === 1
+        check(`${label}: the uptime list strikes the down app; the ledger marks the new issue`,
+          (await p.locator('#uptime ~ ul li', { hasText: 'Fixture 500' }).locator('.down-name').count()) === 1
           && (await p.locator('table.ledger tr', { hasText: 'fixture-new' }).locator('.fresh-issue').count()) === 1);
+        const old = await p.locator('table.ledger tr', { hasText: 'fixture-old' }).innerText();
+        check(`${label}: a resolved error shows its count, age and state, and is no problem`, old.includes('58× · 2 d ago · resolved') && (await entry('fixture-old').count()) === 0, old.replace(/\s+/g, ' '));
+        check(`${label}: the Sentry button opens the app's issue list`, (await p.locator('table.ledger tr', { hasText: 'fixture-new' }).getByRole('link', { name: 'Sentry' }).getAttribute('href')) === 'https://bits-and-pixels-ou.sentry.io/issues/?project=1&statsPeriod=7d');
+        const copied = async (name) => {
+          await entry(name).getByRole('button', { name: 'Copy for Claude Code' }).click();
+          await entry(name).getByText('Copied').waitFor({ timeout: 3000 });
+          return p.evaluate(() => navigator.clipboard.readText());
+        };
+        const errText = await copied('fixture-new');
+        check(`${label}: the copied prompt for an error has its text, area and Sentry link`, ['FixtureError: fixture-new broke', 'Where: fixture:area', 'Sentry: https://sentry.test/fixture-new', 'issues/101/events/latest/'].every((x) => errText.includes(x)), errText.split('\n')[0]);
+        const downText = await copied('Fixture 500');
+        check(`${label}: the copied prompt for a down app names the answer`, downText.includes('Fixture 500 down: answered 500'), downText.split('\n')[0]);
         check(`${label}: junk Sentry projects stay hidden`, (await p.getByText('keeletark').count()) === 0);
         if (width === 375) check('fixture 375: no horizontal scroll', (await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
         await p.screenshot({ path: join(SHOTS, `fixture-problems-${label}.png`) });

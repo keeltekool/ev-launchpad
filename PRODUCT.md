@@ -19,14 +19,16 @@ It replaces a wall of 47 screenshot tiles with no status (the owner: "uttter shi
 
 ## Operating Context
 - Opened ad hoc, often from a phone, between other work; sometimes left open on a desktop (it refreshes itself every 5 minutes).
-- Data: a server-side GET per live app (up/down, ms; 10 s timeout) and Sentry (org `bits-and-pixels-ou`): errors in 24 h and 7 d, the newest unresolved issue, and whether an issue was first seen in the last 24 h.
+- Data: a server-side GET per live app (up/down, ms; 10 s timeout) and Sentry (org `bits-and-pixels-ou`): per app the error worth showing over 7 days (a new open one, else the newest open, else the newest resolved) with its count, times, state and `area` tag, and whether an issue was first seen in the last 24 h.
+- No alert emails (owner, 24.10.2026): the owner comes to this page to see problems.
 - Each app has link chips (App, Admin, Landing…) carried over from the old registry. Dormant apps are listed but never checked.
 - Behind a passcode (error titles can carry personal data); a `?key=` link or the passcode sets a one-year cookie.
 
 ## Capabilities and Constraints
 - Header: name, "checked HH:MM", light/dark toggle (remembered), search over app names (`/` focuses, Esc clears).
-- Problems block on top: apps that are down or have a new error, each saying which; otherwise one line: "All N live apps up · no new errors in 24 h".
-- Live apps: name, up/down + ms, errors 24 h / 7 d, newest unresolved issue title linked to Sentry, link chips, a muted "no Sentry" mark. Order: problems, then apps with unresolved issues in 7 d, then A–Z. A Sentry project missing from the registry still shows, named by its slug.
+- Problems block on top: apps that are down or have a new error, each saying which, with "Copy for Claude Code" (a prompt with the repo folder, the exact error, its Sentry link and the CLI line for the full event), Sentry and Open; otherwise one line: "All N live apps up · no new errors in 24 h" and how problems will appear.
+- Watched by Sentry (owner, 24.10: "row apps to top that has sentry"): name, up/down/slow, the latest error in its exact text with "58× · 13 h ago · resolved · area", Copy for Claude Code, a Sentry button to the app's issue list, link chips. Order: problems, then apps with open issues, then A–Z. A Sentry project missing from the registry still shows, named by its slug.
+- Uptime only: a compact list of names that open the app, struck through in red when down, "slow" past 3 s. No milliseconds column and no bare error counts (owner, 24.10: "what does this 59/59 say to me").
 - Dormant (N): collapsed; name and link chips only.
 - When Sentry is unreachable the page still shows health checks and says so.
 - Out of scope: screenshots, deploy status, GitHub stats, Fleet Doctor.

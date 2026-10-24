@@ -22,14 +22,17 @@ Archivo (variable, `wdth` axis, latin-ext for Estonian names), tabular figures e
 - Ledger: 14px, row line-height 1.3, padding 3px 10px.
 
 ## Structure
-- Desktop (≥1024): watch column 360–400px (sticky): head, find field, entry; then the ruled ledger fills the rest. Dormant sits below the ledger, collapsed.
-- Phone: one column; each ledger row becomes a 3–4 line entry (name · status · ms / errors with label / latest issue / links).
+- Desktop (≥1024): watch column 380–420px (sticky): head, find field, entry; then the ruled ledger of Sentry apps (App · Status · Latest error, 7 days · actions · Links), the uptime-only list in three ruled columns, and Dormant collapsed.
+- Phone: one column; each ledger row becomes an entry: name and status, the error and its detail line, then actions left and links right.
+- Actions (`.act`): small outlined buttons in the ruling, form-label lettering. The one primary action, "Copy for Claude Code" in the trouble entry, is solid ink. The copy button stacks its two labels in one cell, so "Copied" does not change its width.
 - Rules: double rule under the sheet head and the ledger head, 1px column rules, a stronger rule every fifth row.
 
 ## States (mark form, not colour alone)
 - Down: name struck through in red plus a red `DOWN`; listed in the trouble entry with "no answer within 10 s" or "answered <status>".
-- New error in 24 h: latest issue title in red with a double underline; listed in the trouble entry.
-- No Sentry: muted "no Sentry" in the errors column. Sentry project missing from the registry: "not in the registry". Not checked: "—".
+- New error in 24 h: latest error title in red with a double underline; listed in the trouble entry.
+- Open error: title in ink, its detail line in ink; resolved: detail line in the second ink. No error in 7 days: muted "No errors in 7 days".
+- Slow (up, over 3 s): "slow" in ink in place of "up"; the time is in the tooltip.
+- Sentry project missing from the registry: "not in the registry". Not checked or Sentry unreachable: "—".
 - Sentry unreachable: one muted line under the entry; health checks still shown.
 
 ## Motion

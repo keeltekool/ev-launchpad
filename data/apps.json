@@ -30,7 +30,8 @@
         "label": "Open",
         "url": "https://allekirjoitus-sales-tool.vercel.app"
       }
-    ]
+    ],
+    "repo": "Allekirjoitus_Sales_Tool"
   },
   {
     "name": "Allekirjoitus.fi V2",
@@ -68,7 +69,8 @@
         "label": "Admin",
         "url": "https://cv-tailor-plus.vercel.app/en/admin"
       }
-    ]
+    ],
+    "repo": "cv-tailor-plus"
   },
   {
     "name": "Athlon",
@@ -80,7 +82,8 @@
         "label": "Open",
         "url": "https://athlon.vercel.app"
       }
-    ]
+    ],
+    "repo": "athlon"
   },
   {
     "name": "Build in Sight",
@@ -91,7 +94,8 @@
         "label": "Open",
         "url": "https://build-in-sight.vercel.app"
       }
-    ]
+    ],
+    "repo": "build-in-sight"
   },
   {
     "name": "Career Recall",
@@ -102,7 +106,8 @@
         "label": "Open",
         "url": "https://career-recall.vercel.app"
       }
-    ]
+    ],
+    "repo": "career-recall-standard"
   },
   {
     "name": "Category PRO",
@@ -114,7 +119,8 @@
         "label": "Open",
         "url": "https://category-pro.vercel.app"
       }
-    ]
+    ],
+    "repo": "category-pro"
   },
   {
     "name": "CrateDig",
@@ -173,7 +179,8 @@
         "label": "Portal",
         "url": "https://sk-e-seal-prototype.vercel.app/dashboard"
       }
-    ]
+    ],
+    "repo": "sk-e-seal-prototype"
   },
   {
     "name": "egert_amp",
@@ -206,7 +213,8 @@
         "label": "App",
         "url": "https://eudi-wallet-tracker.vercel.app"
       }
-    ]
+    ],
+    "repo": "eudi-wallet-tracker"
   },
   {
     "name": "Feedboard Pro",
@@ -228,7 +236,8 @@
         "label": "Open",
         "url": "https://getfileshift.vercel.app"
       }
-    ]
+    ],
+    "repo": "iphone-converter"
   },
   {
     "name": "GymPal",
@@ -251,7 +260,8 @@
         "label": "Open",
         "url": "https://hankeradar-alpha.vercel.app"
       }
-    ]
+    ],
+    "repo": "hankeradar"
   },
   {
     "name": "HindRadar",
@@ -274,7 +284,8 @@
         "label": "Open",
         "url": "https://hinnavaht.vercel.app"
       }
-    ]
+    ],
+    "repo": "hinnavaht"
   },
   {
     "name": "HOOG",
@@ -296,7 +307,8 @@
         "label": "Open",
         "url": "https://idea-radar-topaz.vercel.app"
       }
-    ]
+    ],
+    "repo": "idea-radar"
   },
   {
     "name": "Kalkulaator",
@@ -319,29 +331,34 @@
         "label": "Open",
         "url": "https://keepr-psi.vercel.app"
       }
-    ]
+    ],
+    "repo": "keepr"
   },
   {
     "name": "Keila Leht Ultra",
     "url": "https://keila-leht-ultra.vercel.app",
+    "sentry": "keila-leht-ultra",
     "status": "live",
     "links": [
       {
         "label": "Open",
         "url": "https://keila-leht-ultra.vercel.app"
       }
-    ]
+    ],
+    "repo": "keila-leht-ultra"
   },
   {
     "name": "Käsilane",
     "url": "https://kasilane.vercel.app",
+    "sentry": "kasilane",
     "status": "live",
     "links": [
       {
         "label": "Open",
         "url": "https://kasilane.vercel.app"
       }
-    ]
+    ],
+    "repo": "kasilane"
   },
   {
     "name": "Launchpad",
@@ -353,7 +370,8 @@
         "label": "Open",
         "url": "https://ev-launchpad.vercel.app"
       }
-    ]
+    ],
+    "repo": "launchpad"
   },
   {
     "name": "Lead Radar",
@@ -369,13 +387,15 @@
   {
     "name": "Livery",
     "url": "https://livery-sooty.vercel.app",
+    "sentry": "livery",
     "status": "live",
     "links": [
       {
         "label": "Open",
         "url": "https://livery-sooty.vercel.app"
       }
-    ]
+    ],
+    "repo": "livery"
   },
   {
     "name": "Lonkero Cruise",
@@ -386,7 +406,8 @@
         "label": "Open",
         "url": "https://lonkero-cruise-hki.vercel.app"
       }
-    ]
+    ],
+    "repo": "lonkero-cruise-hki"
   },
   {
     "name": "Loop Control Center",
@@ -397,7 +418,8 @@
         "label": "Open",
         "url": "https://loop-control-center.vercel.app"
       }
-    ]
+    ],
+    "repo": "loop-control-center"
   },
   {
     "name": "Market Watch",
@@ -409,7 +431,8 @@
         "label": "Open",
         "url": "https://market-watch-seven.vercel.app"
       }
-    ]
+    ],
+    "repo": "market-watch"
   },
   {
     "name": "Mindloop",
@@ -420,18 +443,21 @@
         "label": "Open",
         "url": "https://mindloop-henna-omega.vercel.app/preview"
       }
-    ]
+    ],
+    "repo": "mindloop"
   },
   {
     "name": "Mini Me",
     "url": "https://mini-me-amber.vercel.app",
+    "sentry": "mini-me",
     "status": "live",
     "links": [
       {
         "label": "Open",
         "url": "https://mini-me-amber.vercel.app"
       }
-    ]
+    ],
+    "repo": "mini-me"
   },
   {
     "name": "Personal Finance Tracker",
@@ -475,7 +501,8 @@
         "label": "Open",
         "url": "https://prindipesa.vercel.app"
       }
-    ]
+    ],
+    "repo": "prindipesa"
   },
   {
     "name": "Prop-Radar",
@@ -508,7 +535,8 @@
         "label": "Open",
         "url": "https://radar-check.vercel.app"
       }
-    ]
+    ],
+    "repo": "radar-check"
   },
   {
     "name": "Rental Business Kit",
@@ -538,7 +566,8 @@
         "label": "Admin",
         "url": "https://saku-tennis-revamp.vercel.app/admin"
       }
-    ]
+    ],
+    "repo": "saku-tennis-revamp"
   },
   {
     "name": "Scrapyard",
@@ -549,7 +578,8 @@
         "label": "App",
         "url": "https://scrapyard-ten.vercel.app"
       }
-    ]
+    ],
+    "repo": "scrapyard"
   },
   {
     "name": "Sinu Aed",
@@ -571,7 +601,8 @@
         "label": "Open",
         "url": "https://skill4win.vercel.app"
       }
-    ]
+    ],
+    "repo": "skill4win"
   },
   {
     "name": "Skrift-CV",
@@ -628,7 +659,8 @@
         "label": "Landing",
         "url": "https://songdrop-landing.vercel.app"
       }
-    ]
+    ],
+    "repo": "songdrop-app"
   },
   {
     "name": "Spordipäev",
@@ -639,7 +671,8 @@
         "label": "Open",
         "url": "https://spordipaev-blond.vercel.app"
       }
-    ]
+    ],
+    "repo": "spordipaev"
   },
   {
     "name": "Spotify Artist Browser",
@@ -706,7 +739,8 @@
         "label": "Open",
         "url": "https://travel-assist-poland.vercel.app"
       }
-    ]
+    ],
+    "repo": "Travel-Assist-Poland"
   },
   {
     "name": "Trump Roast Lab",
@@ -728,18 +762,21 @@
         "label": "Open",
         "url": "https://tube-heureka.vercel.app"
       }
-    ]
+    ],
+    "repo": "tube-heureka"
   },
   {
     "name": "VAIB",
     "url": "https://vaib-five.vercel.app",
+    "sentry": "vaib",
     "status": "live",
     "links": [
       {
         "label": "Open",
         "url": "https://vaib-five.vercel.app"
       }
-    ]
+    ],
+    "repo": "vaib"
   },
   {
     "name": "VAIB-X",
@@ -750,7 +787,8 @@
         "label": "Open",
         "url": "https://vaib-x.vercel.app"
       }
-    ]
+    ],
+    "repo": "vaib-x"
   },
   {
     "name": "WHO DIS?",

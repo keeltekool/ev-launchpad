@@ -16,7 +16,7 @@ No database. Local: `vercel env pull .env.local --environment production`.
 
 ## How it works
 - `data/apps.json`: the registry, `{ name, url, sentry?, status: live|dormant, links[] }` (67 apps). `url` is what gets health-checked; `sentry` is the Sentry project slug. Without it, a Sentry project named after the app (`slugOf`: "Käsilane" → `kasilane`) is the app's project, so wiring an app needs no Launchpad deploy.
-- `src/app/page.tsx`: `getBoard()` is `'use cache'` with `cacheLife({ stale: 60, revalidate: 60, expire: 120 })`, streamed behind `<Suspense>`. It runs `getSentrySummary()` (`src/lib/sentry.ts`: project list, unresolved production issues over 7 d, production error counts for 24 h and 7 d; the junk projects `javascript-nextjs` and `keeletark` are hidden until the owner deletes them) and `checkApp()` (`src/lib/health.ts`) for every live app, then `buildBoard()` (`src/lib/board.ts`).
+- `src/app/page.tsx`: `getBoard()` is `'use cache'` with `cacheLife({ stale: 60, revalidate: 60, expire: 120 })`, streamed behind `<Suspense>`. It runs `getSentrySummary()` (`src/lib/sentry.ts`: project list, every production issue over 7 d with an empty `query=` so resolved ones come too, and each issue's `area` tag from `events/?dataset=errors&field=issue.id&field=area`; the junk projects `javascript-nextjs` and `keeletark` are hidden until the owner deletes them) and `checkApp()` (`src/lib/health.ts`) for every live app, then `buildBoard()` (`src/lib/board.ts`).
 - `src/proxy.ts`: every route needs the cookie `lp_pass` (sha256 of the passcode). `/unlock` posts to `/api/unlock`. Fails closed without `LAUNCHPAD_PASSCODE`.
 - `src/lib/report.ts`: Launchpad's own failures go to Sentry as a plain envelope POST (no SDK), from `src/instrumentation.ts` (`onRequestError`) and `src/app/global-error.tsx`. It sends only when `VERCEL_ENV` is `production`.
 - Test seams, never set on Vercel: `SENTRY_API` (Sentry API base) and `LAUNCHPAD_EXTRA_APPS` (JSON entries appended to the registry). Only the fixture board in `check-ui-flows.mjs` sets them, and both are ignored when `VERCEL_ENV` is `production`.
@@ -24,8 +24,9 @@ No database. Local: `vercel env pull .env.local --environment production`.
 
 ## Checks
 - `npm test`: board ordering and merge, 401/403 count as up, registry validity.
-- `node scripts/check-ui-flows.mjs <url>`: passcode wrong/right, render time under 15 s, reload, entry, Sentry reachable, `/` search and Esc, Dormant, theme survives reload, a link chip matches the registry, no sideways scroll at 375, a 1920 screenshot. `ship.mjs` runs it.
-- Against `http://localhost:4870` it also starts a fixture board from the local build (ports 4871 and 4872): a fake Sentry and three broken apps (one answers 500, one hangs, one refuses the connection). It asserts the Problems block, the 10 s cap on the render, junk projects hidden, and the "Sentry unreachable" line. Run `next build` first.
+- `node scripts/check-ui-flows.mjs <url>`: passcode wrong/right, render time under 15 s, reload, entry, Sentry reachable, Sentry and uptime-only apps apart, no ms column, a Sentry button per watched app, Copy for Claude Code (reads the clipboard), `/` search and Esc, Dormant, theme survives reload, a link chip matches the registry, no sideways scroll at 375, a 1920 screenshot. `ship.mjs` runs it.
+- Against `http://localhost:4870` it also starts a fixture board from the local build (ports 4871 and 4872): a fake Sentry (a new open issue with an area, a resolved one, a junk project) and three broken apps (one answers 500, one hangs, one refuses the connection). It asserts the Problems block, the copied prompts for an error and a down app, the Sentry button URL, the resolved detail line, the 10 s cap on the render, junk projects hidden, and the "Sentry unreachable" line. Run `next build` first.
+- `data/apps.json` `repo`: the folder under `C:\Users\Kasutaja\Claude_Projects\` that the copied prompt names; the unit test fails if a live app has none.
 
 ## Gotchas
 - A `use cache` lifetime under 5 minutes is runtime data in Next 16: it must sit inside `<Suspense>`, or the build fails at prerender.

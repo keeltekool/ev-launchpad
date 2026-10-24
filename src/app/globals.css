@@ -162,8 +162,53 @@ a:hover {
 .ledger .remark {
   max-width: 1px;
   width: 100%;
+}
+/* The error cell: the exact error on one line, its count, age, state and area under it. */
+.ledger .remark > * {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Actions: outlined in the ruling; the one primary action (copy the prompt for a problem) is solid ink. */
+.act {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  padding: 0.3125rem 0.5rem;
+  font-stretch: 87%;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+.act:hover {
+  border-color: var(--ink);
+  background: color-mix(in oklab, var(--sheet) 60%, transparent);
+}
+/* The copy button stacks its two labels in one cell (no width jump on "Copied"). */
+.act-copy {
+  display: inline-grid;
+}
+.act-copy > span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.act-primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+.act-primary:hover {
+  background: color-mix(in oklab, var(--ink) 82%, var(--paper));
 }
 .down-name {
   text-decoration: line-through;
@@ -189,12 +234,13 @@ a:hover {
   }
   .ledger tbody tr {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto;
     grid-template-areas:
-      "name status ms"
-      "errors errors errors"
-      "remark remark remark"
-      "links links links";
+      "name status"
+      "error error"
+      "actions links";
+    align-items: center;
+    row-gap: 0.25rem;
     column-gap: 0.75rem;
     padding: 0.625rem 0;
     border-bottom: 1px solid var(--rule);
@@ -208,10 +254,12 @@ a:hover {
     white-space: normal;
   }
   .ledger td[data-col="name"] { grid-area: name; font-weight: 600; }
-  .ledger td[data-col="status"] { grid-area: status; }
-  .ledger td[data-col="ms"] { grid-area: ms; }
-  .ledger td[data-col="errors"] { grid-area: errors; text-align: left; }
-  .ledger td[data-col="remark"] { grid-area: remark; max-width: none; white-space: nowrap; }
+  .ledger td[data-col="status"] { grid-area: status; justify-self: end; }
+  .ledger td[data-col="links"] { justify-self: end; }
+  .ledger td[data-col="error"] { grid-area: error; max-width: none; }
+  .ledger td[data-col="error"] > * { white-space: normal; overflow-wrap: anywhere; }
+  .ledger td[data-col="actions"] { grid-area: actions; }
+  .ledger td[data-col="actions"]:not(:has(a, button)) { display: none; }
   .ledger td[data-col="links"] { grid-area: links; }
   .ledger td:empty { display: none; }
 }
