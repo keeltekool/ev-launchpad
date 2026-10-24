@@ -9,9 +9,11 @@ const same = (a: Buffer, b: Buffer) => a.length === b.length && timingSafeEqual(
 // The cookie holds a hash of the passcode, never the passcode itself; changing the passcode logs every device out.
 export const cookieValue = () => sha(`launchpad:${process.env.LAUNCHPAD_PASSCODE}`).toString("hex");
 
-// Both checks fail closed when LAUNCHPAD_PASSCODE is not set.
+// Both checks fail closed when LAUNCHPAD_PASSCODE is not set. NFC: an "ü" typed as one character or as u + accent
+// is the same passcode.
 export const passcodeMatches = (candidate: string | null | undefined) =>
-  Boolean(process.env.LAUNCHPAD_PASSCODE && candidate) && same(sha(candidate!), sha(process.env.LAUNCHPAD_PASSCODE!));
+  Boolean(process.env.LAUNCHPAD_PASSCODE && candidate) &&
+  same(sha(candidate!.normalize("NFC")), sha(process.env.LAUNCHPAD_PASSCODE!.normalize("NFC")));
 
 export const cookieIsValid = (value: string | undefined) =>
   Boolean(process.env.LAUNCHPAD_PASSCODE && value) && same(Buffer.from(value!), Buffer.from(cookieValue()));

@@ -103,3 +103,13 @@ test("report: nothing outside Vercel production; one event per failure kind per 
   delete process.env.VERCEL_ENV;
   assert.equal(posts, 2);
 });
+
+test("passcode: \"T\u00fcranahk\" matches whether \u00fc is one character or u + accent", async () => {
+  process.env.LAUNCHPAD_PASSCODE = "T\u00fcranahk";
+  const { passcodeMatches } = await import("./passcode.ts");
+  assert.equal(passcodeMatches("T\u00fcranahk"), true);
+  assert.equal(passcodeMatches("Tu\u0308ranahk"), true);
+  assert.equal(passcodeMatches("Turanahk"), false);
+  assert.equal(passcodeMatches("lp-old"), false);
+  delete process.env.LAUNCHPAD_PASSCODE;
+});
