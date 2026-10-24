@@ -10,7 +10,7 @@
 | Service | Purpose | Env vars |
 |---------|---------|----------|
 | Vercel | Hosting, auto-deploy from GitHub `master` | `SENTRY_AUTH_TOKEN` (org read token, production), `LAUNCHPAD_PASSCODE` (production + preview) |
-| Sentry (org `bits-and-pixels-ou`, EU `de.sentry.io`) | Reads errors and issues for every project; Launchpad's own errors go to project `launchpad` (alert workflow 1410455) | DSN hardcoded in `src/lib/report.ts` |
+| Sentry (org `bits-and-pixels-ou`, EU `de.sentry.io`) | Reads errors and issues for every project; Launchpad's own errors go to project `launchpad` | DSN hardcoded in `src/lib/report.ts` |
 
 No database. Local: `vercel env pull .env.local --environment production`.
 
