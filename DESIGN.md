@@ -30,6 +30,8 @@ Archivo (variable, `wdth` axis, latin-ext for Estonian names), tabular figures e
 ## States (mark form, not colour alone)
 - Down: name struck through in red plus a red `DOWN`; listed in the trouble entry with "no answer within 10 s" or "answered <status>".
 - New error in 24 h: latest error title in red with a double underline; listed in the trouble entry.
+- Came back (an issue open again after it was resolved, seen in 24 h): the same red mark; the trouble entry reads "Came back:".
+- Archived: the detail line reads "archived" in the second ink.
 - Open error: title in ink, its detail line in ink; resolved: detail line in the second ink. No error in 7 days: muted "No errors in 7 days".
 - Slow (up, over 3 s): "slow" in ink in place of "up"; the time is in the tooltip.
 - Sentry project missing from the registry: "not in the registry". Not checked or Sentry unreachable: "—".

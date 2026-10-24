@@ -18,32 +18,33 @@ What was wrong on 23.10.2026:
 For the owner alone: one page that answers **"is anything of mine broken right now?"** and opens any app in one click.
 
 ## The page (`/`)
+> Changed 24.10.2026 by the owner after using it ("what does this 59/59 say to me", "row apps to top that has sentry", "the UI should give more info about errors with the click/copy so the user can take the snippet straight to claude code to investigate and fix", "No emails to user"). The lines below are the current page; the plan records the change (Task 2.10).
 - **Header:** the name, "checked HH:MM", and a theme toggle (light/dark, remembered). A search box filters every list by app name; `/` focuses it and Esc clears it. These carry over from the old app.
-- **Problems** (top, red): live apps that are **down**, meaning the health check failed (no 2xx/3xx within 10 s), or that have a **new error**, meaning a Sentry issue first seen in the last 24 h. Each row says which. With no problems, one line: "All N live apps up · no new errors in 24 h".
-- **Live apps:** one row per app. It shows:
-  - the name
-  - up/down and response time in ms
-  - errors in the last 24 h and 7 d
-  - the newest unresolved issue's title, linked to the issue in Sentry
-  - the app's link chips (App, Admin, Landing…, carried over from the old registry)
-  - a muted "no Sentry" mark when the app has no Sentry project
+- **Problems** (top, red): live apps that are **down**, meaning the health check failed (no 2xx/3xx within 10 s), or that have a **new error**, meaning an open Sentry issue first seen in the last 24 h, or one that came back (regressed) in the last 24 h. Each row says which and has "Copy for Claude Code", Sentry and Open. With no problems, one line: "All N live apps up · no new errors in 24 h", and a line saying how problems will appear.
+- **Watched by Sentry:** one row per app with a Sentry project. It shows:
+  - the name, and up, down or slow (up, but over 3 s)
+  - the latest error in its exact text, linked to the issue, with "58× · 13 h ago · resolved · area" (all-time count, last seen, open / came back / resolved / archived, the `area` tag)
+  - "Copy for Claude Code": the repo folder, the issue, its link and the CLI line for the full event, with the error text fenced as data
+  - a Sentry button to the app's issue list, and the app's link chips
 
-  Order: problems first, then apps with unresolved issues in the last 7 d, then A–Z.
+  Order: problems first, then apps with open issues, then A–Z.
+- **Uptime only:** apps without Sentry as a compact list of names that open the app, struck through in red when down, "slow" past 3 s.
+- No response-time column and no bare error counts.
 - **Dormant apps:** a collapsed section "Dormant (N)" with only the name and link chips. No checks run on them.
-- A Sentry project that isn't in the registry still appears under Live, named by its slug, so a newly wired app shows up without editing anything.
+- A Sentry project that isn't in the registry still appears under Watched by Sentry, named by its slug, so a newly wired app shows up without editing anything.
 - **Refresh:** data is fetched on the server and cached for 60 s. The open page refreshes itself every 5 minutes (as the old monitor did).
 - **Access:** the page shows error titles from every app, so it sits behind a passcode. A correct passcode, or a one-time `?key=` link, sets a cookie that lasts one year.
 - Layout: mobile first, with a real desktop layout at 1440 and 1920.
 
 ## Data
-- `data/apps.json` registry entry: `{ name, url, sentry?, status: "live" | "dormant", links: [{ label, url }] }`. `url` is the address that gets checked. It is seeded from the old `projects.json` plus the live apps in global STACK.md.
+- `data/apps.json` registry entry: `{ name, url, repo?, sentry?, status: "live" | "dormant", links: [{ label, url }] }`. `repo` is the folder under `C:\Users\Kasutaja\Claude_Projects\` that the copied prompt names. `url` is the address that gets checked. It is seeded from the old `projects.json` plus the live apps in global STACK.md.
 - Sentry: org `bits-and-pixels-ou` (EU, `https://de.sentry.io/api/0`). The read token is the existing Vercel env `SENTRY_AUTH_TOKEN`.
 - Health check: a server-side GET to `url` that follows redirects, with a 10 s timeout. It records the status code and ms.
 
 ## Sentry standard (every live app with Sentry)
 - One project per app in `bits-and-pixels-ou`, platform `javascript-nextjs`, with slug = `sentry` in the registry.
 - SDK wiring follows the current official manual setup, checked against the docs for the installed version. Sentry is enabled only in production, so local dev doesn't send noise. No `tunnelRoute`: events go straight to `de.sentry.io`.
-- One issue alert per project: a new issue sends an email to the owner.
+- No alert emails (owner, 24.10.2026: "No emails to user fix or reverse this"). Problems are read on this page.
 - Junk projects deleted: `javascript-nextjs` (ApplyKit local dev) and `keeletark` (retired app).
 - Getting uptime only, no Sentry, until the owner says otherwise: work and client apps (SK E-Seal Prototype, Allekirjoitus Sales Tool, Saku Tenniseklubi). SongDrop personal is never touched (memory: "DO NOT TOUCH").
 

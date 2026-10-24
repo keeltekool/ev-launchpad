@@ -44,7 +44,7 @@ Init alone only sends crashes and timings. In the 14 days before 23.10, producti
 - **With no server SDK, `instrumentation.ts` exports `onRequestError`, which calls `report()`.** Uncaught route errors are reported that way.
 - **Under Turbopack the server SDK has no route wrappers, so nothing flushes manually captured events.** If an app keeps the server SDK, follow every manual `captureException` with `await Sentry.flush(2000)`.
 - **No alert emails** (owner, 24.10.2026: "No emails to user fix or reverse this - my mailbox is convoluted as is - i have to manage this to come here and look and see visually the problems - not emails"). Every issue alert rule was deleted or disabled that day; problems are read on Launchpad. Do not create alert rules.
-- **Proof:** trigger one real failure in production without writing data, then see the issue in Sentry and on Launchpad. Keepr: a malformed multipart `POST /api/upload` from a logged-in page produced KEEPR-3 within 1 s and the alert fired.
+- **Proof:** trigger one real failure in production without writing data, then see the issue in Sentry and on Launchpad. Keepr: a malformed multipart `POST /api/upload` from a logged-in page produced KEEPR-3 within 1 s.
 - **When every input is validated** (no safe server failure), prove the browser path: open the production page in Playwright, answer one of its API calls with `page.route(..., r => r.fulfill({ status: 503 }))`, and do the action. The request never reaches the server, and the production bundle's `report()` sends the event (Käsilane, KASILANE-2). This also proves `NEXT_PUBLIC_VERCEL_ENV` is set in the bundle.
 - **Name the Sentry project after the app** (`slugOf(name)`: lowercase, no diacritics, hyphens). Launchpad then matches it without a registry edit.
 

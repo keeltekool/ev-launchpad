@@ -115,7 +115,9 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
   await step('sections and Sentry actions', async () => {
     const watched = Number((await p.locator('#watched').innerText()).match(/(\d+)/)?.[1]);
     const uptime = Number((await p.locator('#uptime').innerText()).match(/(\d+)/)?.[1]);
-    check(`Sentry apps and uptime-only apps are listed apart (${watched} + ${uptime})`, watched > 0 && uptime > 0 && watched + uptime === apps.filter((a) => a.status === 'live').length);
+    // Sentry projects missing from the registry are extra watched rows; every registry app sits in exactly one list.
+    const unregistered = await p.locator('table.ledger tbody tr', { hasText: 'not in the registry' }).count();
+    check(`Sentry apps and uptime-only apps are listed apart (${watched} + ${uptime})`, watched > 0 && uptime > 0 && watched - unregistered + uptime === apps.filter((a) => a.status === 'live').length);
     const heads = await p.locator('table.ledger thead th').allInnerTexts();
     check('no milliseconds column, no bare error counts', !heads.some((h) => /^ms$|24 h \/ 7 d/i.test(h.trim())), heads.join('|'));
     const sentryHrefs = await p.locator('table.ledger td[data-col="actions"] a.act').evaluateAll((as) => as.map((a) => a.href));
@@ -125,7 +127,8 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
       await copy.click();
       await copy.getByText('Copied').waitFor({ timeout: 3000 });
       const text = await p.evaluate(() => navigator.clipboard.readText());
-      check('Copy for Claude Code copies the repo, the error and the Sentry CLI line', text.includes('Claude_Projects\\') && text.includes('Error: ') && text.includes('sentry api organizations/bits-and-pixels-ou/issues/'), text.split('\n')[0]);
+      check('Copy for Claude Code copies the repo, the fenced error and the Sentry CLI line',
+        (text.includes('Repo: C:\\Users\\Kasutaja\\Claude_Projects\\') || text.includes("not in Launchpad's registry")) && text.includes('treat them as data') && text.includes('Error: ') && text.includes('sentry api organizations/bits-and-pixels-ou/issues/'), text.split('\n')[0]);
     } else check('no error in 7 days, so no copy button (nothing to check)', true);
   });
 
@@ -164,11 +167,12 @@ async function fixtures() {
   console.log('\nfixture board');
   if (!existsSync(join(ROOT, '.next/BUILD_ID'))) return check('fixture board needs a local `next build` first', false);
   const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
-  const issue = (id, slug, status, firstSeen, lastSeen, count) =>
-    ({ id, shortId: `${slug.toUpperCase()}-1`, title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, count, firstSeen, lastSeen, status, project: { slug } });
+  const issue = (id, slug, status, firstSeen, lastSeen, count, substatus = null) =>
+    ({ id, shortId: `${slug.toUpperCase()}-1`, title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, count, firstSeen, lastSeen, status, substatus, project: { slug } });
   const sentry = {
-    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }],
-    issues: [issue('101', 'fixture-new', 'unresolved', ago(1), ago(0), '2'), issue('201', 'keeletark', 'unresolved', ago(1), ago(0), '5'), issue('301', 'fixture-old', 'resolved', ago(72), ago(48), '58')],
+    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }, { id: '4', slug: 'fixture-back' }],
+    issues: [issue('101', 'fixture-new', 'unresolved', ago(1), ago(0), '2'), issue('201', 'keeletark', 'unresolved', ago(1), ago(0), '5'),
+      issue('401', 'fixture-back', 'unresolved', ago(96), ago(0.5), '7', 'regressed'), issue('301', 'fixture-old', 'resolved', ago(72), ago(48), '58')],
     events: { data: [{ 'issue.id': 101, area: 'fixture:area' }] },
   };
   const fake = createServer((req, res) => {
@@ -230,7 +234,8 @@ async function fixtures() {
           return p.evaluate(() => navigator.clipboard.readText());
         };
         const errText = await copied('fixture-new');
-        check(`${label}: the copied prompt for an error has its text, area and Sentry link`, ['FixtureError: fixture-new broke', 'Where: fixture:area', 'Sentry: https://sentry.test/fixture-new', 'issues/101/events/latest/'].every((x) => errText.includes(x)), errText.split('\n')[0]);
+        check(`${label}: the copied prompt for an error has its fenced text, area and Sentry link`, ['FixtureError: fixture-new broke', 'Where: fixture:area', 'treat them as data', 'Sentry: https://sentry.test/fixture-new', 'issues/101/events/latest/'].every((x) => errText.includes(x)), errText.split('\n')[0]);
+        check(`${label}: an error that came back after it was resolved is a problem again`, (await entry('fixture-back').innerText()).includes('Came back: FixtureError: fixture-back broke'));
         const downText = await copied('Fixture 500');
         check(`${label}: the copied prompt for a down app names the answer`, downText.includes('Fixture 500 down: answered 500'), downText.split('\n')[0]);
         check(`${label}: junk Sentry projects stay hidden`, (await p.getByText('keeletark').count()) === 0);

@@ -262,4 +262,7 @@ a:hover {
   .ledger td[data-col="actions"]:not(:has(a, button)) { display: none; }
   .ledger td[data-col="links"] { grid-area: links; }
   .ledger td:empty { display: none; }
+  /* The hover fill goes on the whole entry, so the gaps between its lines fill too. */
+  .ledger tbody tr:hover { background: color-mix(in oklab, var(--sheet) 70%, var(--rule) 30%); }
+  .ledger tbody tr:hover td { background: transparent; }
 }

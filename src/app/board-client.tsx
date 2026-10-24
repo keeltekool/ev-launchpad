@@ -22,10 +22,10 @@ function ago(iso: string, from: string) {
   return `${Math.round(min / 1440)} d ago`;
 }
 
-// "58× · 13 h ago · resolved · queue:waiting"
+// "58× · 13 h ago · resolved · queue:waiting" (count is all-time; state is open, came back, resolved or archived)
 function errorMeta(r: Row, checkedAt: string) {
   const i = r.errors!.latest!;
-  return [`${i.count}×`, ago(i.lastSeen, checkedAt), i.open ? "open" : "resolved", i.area].filter(Boolean).join(" · ");
+  return [`${i.count}×`, ago(i.lastSeen, checkedAt), i.back ? "came back" : i.state, i.area].filter(Boolean).join(" · ");
 }
 
 const problemPrompt = (r: Row, checkedAt: string) =>
@@ -199,7 +199,7 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
               {issue && (
                 <>
                   <p className="mt-0.5 text-[0.9375rem] [overflow-wrap:anywhere]">
-                    New error:{" "}
+                    {issue.back ? "Came back:" : "New error:"}{" "}
                     <a href={issue.url} target="_blank" rel="noopener" className="underline decoration-double">
                       {issue.title}
                     </a>
@@ -257,10 +257,10 @@ function WatchedRow({ row: r, board }: { row: Row; board: Board }) {
           <span className="text-ink-2">—</span>
         ) : issue ? (
           <>
-            <a href={issue.url} target="_blank" rel="noopener" title={issue.title} className={r.errors.newIssue24h ? "fresh-issue" : issue.open ? "font-medium" : ""}>
+            <a href={issue.url} target="_blank" rel="noopener" title={issue.title} className={r.errors.newIssue24h ? "fresh-issue" : issue.state === "open" ? "font-medium" : ""}>
               {issue.title}
             </a>
-            <span className={`text-[0.75rem] leading-snug ${issue.open ? "font-medium text-ink" : "text-ink-2"}`}>{errorMeta(r, board.checkedAt)}</span>
+            <span className={`text-[0.75rem] leading-snug ${issue.state === "open" ? "font-medium text-ink" : "text-ink-2"}`}>{errorMeta(r, board.checkedAt)}</span>
           </>
         ) : (
           <span className="text-ink-2">No errors in 7 days</span>
