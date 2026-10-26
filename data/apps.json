@@ -539,6 +539,19 @@
     "repo": "radar-check"
   },
   {
+    "name": "Range PRO",
+    "url": "https://range-pro.vercel.app",
+    "sentry": "range-pro",
+    "status": "live",
+    "links": [
+      {
+        "label": "Open",
+        "url": "https://range-pro.vercel.app"
+      }
+    ],
+    "repo": "range-pro"
+  },
+  {
     "name": "Rental Business Kit",
     "url": "https://rental-business-kit.vercel.app/t/mets",
     "status": "dormant",
