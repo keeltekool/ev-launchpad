@@ -1,115 +1,83 @@
 # Launchpad + Sentry: RESUME HERE
 
 > Fresh-session entry point. Read top to bottom, then the "Read next" files in order.
-> Settled decisions are settled: do not re-ask, do not re-litigate. Updated 23.10.2026 ~23:45.
+> Settled decisions are settled: do not re-ask, do not re-litigate. Updated 27.10.2026.
 
 ## State
-- Prod: https://ev-launchpad.vercel.app still serves the OLD static tile wall (master). The new app is NOT deployed.
-- Repo: keeltekool/ev-launchpad. Work is on branch **`rebuild`** (70915dd data layer, a07481a board UI, plus the handoff docs commit), pushed to origin as `rebuild`. `master` local = origin/master + 3 docs commits that are also contained in `rebuild`.
-- **The Vercel project `launchpad` framework preset was switched to Next.js on 23.10.** Do NOT deploy `master` (static) any more; deploy only after `rebuild` is merged into `master`.
-- Gates: Gate 2 **red**: the code review says not ready (6 Important, see `docs/reviews/2026-10-23-phase2-gate.md`). Gate R2 **red**: R1 list unconfirmed and R2 partial (`docs/reviews/2026-10-23-apps-sentry-gate.md`).
-- Where we stopped: the Phase 2 code is built and passes locally (npm test 5/5, check-ui-flows 26/26 and the reviewer's run 29/29), but the gate review findings are not yet fixed.
+- Prod: https://ev-launchpad.vercel.app (passcode: `LAUNCHPAD_PASSCODE` in `.env.local` and Vercel env; the owner knows it; it is compared after NFC normalisation; a `?key=` link or the form sets a one-year cookie). Repo keeltekool/ev-launchpad, branch `master`, last commit is the handoff commit on top of `2195c7c`. Tree clean, nothing unpushed in any of the 11 repos touched (checked 27.10).
+- Gates: Gate 2 passed (production check-ui-flows 40/40 on 24.10). Task 2.10 ("the board for use") shipped and reviewed (`docs/reviews/2026-10-24-board-for-use.md`, every finding answered). Gate R2: 8 apps proven (see below).
+- Where we stopped: the owner approved finishing the loose ends (below, "Next mission") and asked for this handover because the context was full. No loose-end code has been started.
 
 ## What this project is (30 seconds)
-Launchpad is the owner's single passcode-gated page that answers "is anything of mine broken right now?" for ~33 live web apps, merging a server-side health check per app with that app's Sentry errors, and opens any app in one click. The Sentry half of the job makes Sentry actually catch real failures in the apps that matter and email the owner.
+Launchpad is the owner's single passcode-gated page that answers "is anything of mine broken right now?" for 33 live web apps: a server-side health check per app merged with that app's Sentry errors, plus one-click open. The Sentry half makes Sentry catch the failures the apps used to swallow. The owner's goal now, verbatim 27.10: improving Sentry surveillance and monitoring "is the sole thing I'm interested in improving".
 
 ## Current state — done / undone
 
-### Done (all shipped and verified unless noted)
-| Item | Evidence |
+### Done
+| Area | What |
 |---|---|
-| Task 1.2 Sentry standard | `docs/SENTRY-STANDARD.md` (now with a "Real failures" section: the no-SDK `report.ts` and the alert command) |
-| Task 1.3 `scripts/sentry-proof.mjs` | PASS/FAIL proven; spans dataset, `vercel-production` env |
-| Production-only + standard on hinnavaht, keepr, applykit (cv-tailor-plus), category-pro, hankeradar, Travel-Assist-Poland, songdrop-app, market-watch | sentry-proof PASS for each. Commit shas are in the plan, Tasks 1.4/1.5 |
-| R2 Keepr | `5747c64`: 11 catch sites report; server SDK removed again (Keepr DEVIATIONS §10 perf gate); alert workflow 1410266; KEEPR-3 test issue → alert fired → resolved |
-| R2 Hinnavaht | `8fb6c03`: poll, scrapers, digest, scan; server SDK removed (Hinnavaht docs/SPEC.md line 310); alert 1410349; HINNAVAHT-1 test → alert fired → resolved |
-| market-watch 4/141 flow failures | Cause: its `saved()` test helper matched Sentry's ingest POST; fixed in `7bb5040`; 141/141 with Sentry on |
-| Launchpad Phase 2 code (branch `rebuild`) | Tasks 2.1–2.9 ticked in the plan; Sentry project `launchpad` + alert 1410455; Vercel env `LAUNCHPAD_PASSCODE` (prod + preview) |
-| DESIGN.md, STACK.md, README.md, PRODUCT.md for the new app | committed on `rebuild` |
+| Launchpad page | Problems first (down, new error in 24 h, an error that came back), each with "Copy for Claude Code", Sentry, Open. "Watched by Sentry" ledger (15 apps): latest error in exact text, "N× · age · open/came back/resolved/archived · area", Sentry button to the app's issue list. "Uptime only" compact list (18), red when down, "slow" past 3 s. No ms column, no bare counts. |
+| Copy for Claude Code | `src/lib/prompt.ts`: repo folder, issue, link, `sentry api …/events/latest/` line; error text fenced as data (prompt-injection guard); asks for a proposed fix, never a ship. |
+| Data | `src/lib/sentry.ts`: 3 org calls (projects, all-status issues over 7 d with `lifetime.count`/`substatus`, area per issue from `events/`). `data/apps.json` has `repo` for every live app and explicit `sentry` slugs. Name-match fallback: a project named after the app (`slugOf`) attaches without a deploy. Junk slugs `javascript-nextjs`, `keeletark` hidden (`RETIRED`, ponytail). |
+| Checks | `npm test` 12/12; `scripts/check-ui-flows.mjs` 68 locally (fixture board: fake Sentry, apps answering 500 / hanging / refusing, a came-back issue, copied prompts, Sentry URL) and 40 against prod. |
+| Sentry real-failure reporting (R2) | Proven in production (issue arrived, showed on Launchpad): Keepr, Hinnavaht, Käsilane, Keila Leht Ultra, Mini Me, Livery, Market Watch, VAIB. Each has `report.ts` (envelope POST, Vercel production only, one event per failure kind per minute, `extra.kind` in the fingerprint), `onRequestError`, browser `instrumentation-client.ts` where no browser SDK exists. Per-app details and commit shas: plan, Reset → R2 lines. |
+| Noise fixes | Käsilane `.invalid` queue host skipped; Mini Me flow check stubs Sentry, `.test` users not reported; both verified (zero events from their test runs on 24.10). |
+| Emails | All 9 "New or regressed issue → email" rules deleted, 17 "high priority" defaults disabled (owner, 24.10). Two left that cannot email about errors: 662349 (no project), 1058340 (Seer PR notices; CLI token gets 403). |
 
-### Undone (in this order)
-1. **Fix Gate 2 Important findings** (`docs/reviews/2026-10-23-phase2-gate.md`):
-   - The headline must not say "no new errors" when `sentryOk` is false.
-   - Add `maxDuration` to the page, or confirm Fluid compute.
-   - Hide or limit unregistered junk Sentry slugs until Task 1.1 is done; at minimum, don't let them create Problems.
-   - Record the Phase 2 vs R1/R2 sequencing deviation in the plan.
-   - check-ui-flows: add a bad-token step asserting the "Sentry unreachable" line, a render-time measure, and a real Problems-block assertion (for example a test registry entry pointing at a URL that answers 500, or a fixture route).
-   - Also worth doing from the Minors: gate `report.ts` on `VERCEL_ENV === "production"` (applies to Keepr and Hinnavaht too), the focus colour to brand navy, and the 66/32 → 67/33 and main → master wording in the plan.
-   - Write a "Responses" line per finding in the review file.
-2. **Merge `rebuild` → `master`, ship** with `node ~/.claude/scripts/ship.mjs /` from the repo root. check-ui-flows runs against prod; it reads `LAUNCHPAD_PASSCODE` from `.env.local`. Then give the owner their one-year link, `https://ev-launchpad.vercel.app/?key=<LAUNCHPAD_PASSCODE from .env.local>`, in chat (owner-accepted practice for their own keys).
-3. **Owner confirms the watched list** (proposal in the plan, R1.1). Then R2 per remaining listed app:
-   - Käsilane, Keila Leht Ultra, Tube_Heureka, ApplyKit, Mini Me, Livery, Athlon, VAIB, Market Watch (catch sites).
-   - Per app: map swallowed failures → `report()` → alert rule → one safe production trigger → issue plus fired alert.
-   - Apply the apps-review fingerprint fix (failure kind in the fingerprint) to Keepr and Hinnavaht first.
-4. Apps-review leftovers (`docs/reviews/2026-10-23-apps-sentry-gate.md`):
-   - prove server transactions on hankeradar/ApplyKit with `span.op:http.server`;
-   - a Hinnavaht regression check for the skipped price-0 Selver rows;
-   - don't `await report()` on the scan request path;
-   - the ApplyKit `/config` import;
-   - stale STACK and SPEC lines;
-   - athlon production-only switch (Task 1.5).
-5. Phase 4: `node ~/.claude/scripts/review.mjs`, responses, `/simplify`, ship, §2, `/wrap-up` (global STACK.md, memory).
+### Undone (the approved next mission, in this order)
+1. **ApplyKit (`cv-tailor-plus`) R2.** Most silent failure points of the remaining apps. Inventory in "Gotchas" below (from the 23.10 subagent scan, line refs may have moved: re-check). Has the server SDK; use `report.ts` for catch sites and `onRequestError` (SDK capture is never flushed under Turbopack). Check `.git/claude-lock` AND `git status`/recent commits first: on 23.10 another window was mid-work there without a lock.
+2. **"Last ran" checks for scheduled jobs** (closes the biggest blind spot: a job that stops sends no error). Candidates: Keila editions (cron prune 01:00 UTC, source-health 09:00 UTC, deployment runs), Hinnavaht price poll (twice a day), Keepr digest/nudge crons, Market Watch hunts (manual LCC runner). Shape proposed to the owner: the app reports a missed run to Sentry, and Launchpad shows it red ("Keila: no edition for 9 days"). Design the lightest mechanism first (each app already has a DB with run timestamps; a Launchpad-side freshness read per app via a tiny authenticated endpoint, or the app's own cron reporting "late" for the job before it); propose the concrete mechanism in 5–10 plain lines before coding (it is new scope, approved in principle).
+3. **"Last heard from" per app** on Launchpad: a silent app (broken reporting) must look different from a healthy one ("No errors in 7 days" today hides it). Idea: last event of any kind per project (Sentry `stats_v2` or the newest issue `lastSeen`), shown muted; flag when an app with real traffic has sent nothing for N days. Decide N with the owner only if unclear; default 14 d.
+4. **Code locations in server errors:** `report.ts` sends the stack only as `extra.stack`; Sentry shows no frames. Parse `e.stack` into `exception.values[0].stacktrace.frames` (filename, function, lineno, colno; frames oldest first) in the reference copy `launchpad/src/lib/report.ts`, then the same edit in the 8 app copies (they differ only by DSN and header comment; diff them against the reference). Put file:line into the copied prompt if available.
+5. **Athlon:** Next 14, `vercel --prod` (no remote, sanctioned). Its root `instrumentation.ts` is dead (app lives in `src/`, Next 14 needs `experimental.instrumentationHook`), `instrumentation-client.ts` is a Next 15.3+ file (Next 14 uses `sentry.client.config.ts`), init is not production-only. Read athlon STACK.md / CLAUDE.md first. Few failure points (no API routes; ingest runs locally).
+6. **Finish:** `node ~/.claude/scripts/review.mjs` (independent review, report unedited in `docs/reviews/`), a response to every finding, fixes, `/simplify`, `ship.mjs`, §2 checks, `/wrap-up` (Launchpad STACK.md, global STACK.md, memory `project_launchpad`).
 
 ## Read next (in this order)
-1. `docs/plans/2026-10-23-launchpad-rebuild-sentry.md`: the plan with every tick, deviation and commit sha; the "Reset" section is the current direction.
-2. `docs/reviews/2026-10-23-phase2-gate.md`, then `docs/reviews/2026-10-23-apps-sentry-gate.md`: the open findings.
-3. `SPEC.md`, `PRODUCT.md`, `DESIGN.md`: what the page must do, and its look.
-4. `STACK.md`: how the new app is wired, its checks and gotchas.
-5. `docs/SENTRY-STANDARD.md`: SDK wiring plus the real-failures pattern (`report.ts`, alert command, proof).
+1. `docs/plans/2026-10-23-launchpad-rebuild-sentry.md` — every tick, deviation, commit sha; Reset (no-email reversal at its top), R2 lines per app, Task 2.10.
+2. `docs/reviews/` — `2026-10-23-phase2-gate.md`, `2026-10-24-r2-apps-gate.md`, `2026-10-24-board-for-use.md`, all with responses.
+3. `docs/SENTRY-STANDARD.md` — the wiring recipe: `report.ts`, proof methods (incl. the browser 503-intercept proof), project naming, no alert rules.
+4. `SPEC.md`, `PRODUCT.md`, `DESIGN.md` (Bridge Watch Log), `STACK.md` (how the board works, checks, gotchas).
 
 ## Critical context that must not be lost
-- **Owner's direction (verbatim, 23.10):** "the currrent list of sentry apps is not bible, I am not intetrtestred in volume as i stated in the beginning i am intetrested in getting sentriy actually useful and the launchpad actually useful not some shit Potemkin village as its currently is". The owner answered the reset proposal with "Yes yes to allll!". Settled reset:
-  1. A short watched list chosen by real use (proposed from traffic; owner confirms or edits).
-  2. Real swallowed failures reported per app, each proven by a triggered failure and a fired alert.
-  3. Alert: email on a new and on a regressed issue.
-  4. The Launchpad page before more wiring.
-  It replaces the rest of Phase 1 and all of Phase 3. Do not go back to wiring apps for volume.
-- **The finding behind it:** in the 14 days before 23.10, Sentry had zero production issues for any app; everything was caught and swallowed. Transactions arriving does not mean Sentry works; only a triggered failure plus a fired alert counts.
-- **Keepr and Hinnavaht must not get the server Sentry SDK** (Keepr DEVIATIONS §10: it broke the locked scan benchmark; Hinnavaht docs/SPEC.md line 310). They use `src/lib/report.ts` (envelope POST). Read each app's own DEVIATIONS/SPEC/STACK before wiring it; the 23.10 session missed this once and reverted.
-- **Visual direction: Bridge Watch Log** (impeccable seed 1cb1cdf8, assigned card). The owner was shown the decision page, asked "do i have to do or think someting of it?" and was told it was optional; they never picked, and it was built unattended. Treat it as settled unless the owner says otherwise. The contract sits in `src/app/layout.tsx`.
-- Owner's original rules for this build (verbatim, session start): "Task 1.1 (deleting two Sentry projects) waits for me, don't retry it. The sentry CLI is logged in. I'm away; I only click OK on login screens."
-- **Communication:** the owner runs ~6 Claude windows in parallel and got angry at long silence ("give me some heads up now for chrissst sake!!!!"). Give a short status line every few steps: what is done, what is next, what needs them.
-- **Vercel deploy cap:** Hobby allows 100 deploys per rolling 24 h; the account was at ~90/100 at 23:00 on 23.10 (all windows). Count before deploying: `vercel api "/v6/deployments?teamId=team_kApO4aO1OelPx1r5i7iPQ5Jp&since=<ms 24h ago>&limit=100"`. Pushing a branch creates a preview deploy too.
-- **Repo locks:** `<repo>/.git/claude-lock`. Skip the repo if the lock is younger than 2 h. Take the lock with an age check, then a noclobber write (`set -C`); never a bare `echo >` (23.10: that overwrote another window's lock in market-watch). Remove your lock when done.
-- Owner Sentry user id for email alerts: `4286511`. Org `bits-and-pixels-ou`, EU (`de.sentry.io`).
-- Test logins that need no owner:
-  - Hinnavaht: Clerk test user `hinnavaht+clerk_test@example.com`, OTP 424242. The recipe is in `hinnavaht/scripts/check-ui-flows.mjs`.
-  - Keepr: the owner's persistent profile `keepr/.pw-profile` (excluded via `.git/info/exclude`), logged in 23.10.
+- **Owner's goal (27.10, verbatim):** "especially need to understand what work was done inside Launchpad and inside improving Sentry, and how you will finalize this assignment with maximum benefit to Sentry surveillance and monitoring. This is the sole thing I'm interested in improving".
+- **Owner's go for this mission (27.10, verbatim):** "start working on what you described here with loose ends". What was described was items 1–6 above; the recommendation given was all six, with items 2 and 3 flagged as new scope ("add 2 and/or 3 if you want them"). Builder's reading: all six are approved; for 2 and 3, show the concrete mechanism in a few plain lines before building, then continue without waiting if the owner doesn't object (owner rule: defaults mean proceed).
+- **No alert emails, ever** (owner 24.10, verbatim: "No emails to user fix or reverse this - my mailbox is convoluted as is - i have to manage this to come here and look and see visually the problems - not emails"). New Sentry projects get a default "high priority issues" email rule: disable it right after `sentry project create` (`sentry alert issues edit bits-and-pixels-ou/<slug>/<id> --status disabled`). An R2 proof = the issue arrives and shows on Launchpad.
+- **The board's purpose** (owner 24.10, after using it): "what does this 59/59 say to me", "row apps to top that has sentry", "the UI should give more info about errors with the click/copy so the user can thake the sniippet sfraifht to claude code to investigate and fix". Exact error text is fine; bare numbers are not. No filter (replaced by the two lists in the approved proposal).
+- **Watched list** (plan R1.1): the proposed list is the working list; the owner never edited it and said overnight work should need "zero my involvement".
+- **Keepr and Hinnavaht never get the server Sentry SDK** (Keepr DEVIATIONS §10 perf gate; Hinnavaht docs/SPEC.md line 310). Read each app's own DEVIATIONS/SPEC/STACK before wiring.
+- **Tube_Heureka** stays out: its docs/SPEC.md:395 excludes Sentry "until errors start to matter" (owner's decision).
+- **Repo locks:** `<repo>/.git/claude-lock`; skip if younger than 2 h; take with an age check then a noclobber write (`set -C`); remove when done. Also look at `git status` and recent commits: other windows sometimes work without a lock.
+- **Vercel Hobby cap:** 100 deploys per rolling 24 h across all windows. Count before shipping: `vercel api "/v6/deployments?teamId=team_kApO4aO1OelPx1r5i7iPQ5Jp&since=<ms 24h ago>&limit=100"`. A docs-only push is a deploy too.
+- Sentry: org `bits-and-pixels-ou`, EU (`de.sentry.io`), CLI `sentry` 0.47.0 logged in; owner user id 4286511. The CLI token cannot delete issues or projects and gets 403 on org-level workflows.
+- Communication: short status lines every few steps (owner runs several windows). Plain language; no jargon in owner-facing replies.
+
+## Cherry-on-top ideas (builder's proposals, NOT owner-approved; offer, don't build)
+1. **"Copy all problems for Claude Code":** one button on the trouble entry that copies every current problem as one prompt, for the morning sweep.
+2. **Weekly "what broke" line on Launchpad:** under the all-clear, "This week: 3 errors in 2 apps, all resolved", so a quiet board still shows the watch is working.
+3. **Proof button per app ("test the pipe"):** sends one harmless test event from the app (via an authenticated endpoint) and shows it arriving, so the owner can verify monitoring any time without Claude.
+4. **Mark test issues** (the proof issues KEEPR-3, HINNAVAHT-1, KASILANE-1/2, KEILA-LEHT-ULTRA-1, MINI-ME-1/2/3, LIVERY-1, MARKET-WATCH-1, VAIB-1) as archived so they stop showing as "latest error" on quiet rows.
 
 ## Gotchas from this session
-- **Sentry API:**
-  - Transactions live in `dataset=spans` with `is_transaction:true`; `dataset=transactions` is empty.
-  - The Vercel environment is `vercel-production`.
-  - `stats_v2` grouped by project returns totals only.
-  - Alert rules made by the CLI are workflows; fire history is at `organizations/<org>/workflows/<id>/group-history/`, not `projects/.../rules/`.
-  - On an HTTP error the `sentry api` CLI prints the JSON body on stdout.
-- **Turbopack builds get no Sentry route wrappers,** so a manual `captureException` on the server is never flushed. Use `report.ts`, or `await Sentry.flush()`.
-- **`@sentry/nextjs` 10.76.2:** import `withSentryConfig` from `@sentry/nextjs/config`; the root export is deprecated.
-- **Next 16 Cache Components:** a `use cache` lifetime under 5 minutes is runtime data, so the page needs `<Suspense>`.
-- **Health checks vs Clerk:** Clerk apps answer 404 to non-page requests and loop their cookie handshake without a cookie jar. The fix is in `src/lib/health.ts`.
-- **npm on this machine:** `npm install` / `npm ci` in launchpad failed with ENOTEMPTY (VS Code watching `node_modules`). Install in a scratch folder and `mv` `node_modules` in (same drive, a rename). Playwright for scripts is borrowed from `~/.claude/scripts/node_modules` (fallback import in both scripts).
-- **Git Bash mangles `/route` arguments:** prefix `MSYS_NO_PATHCONV=1`.
-- **Bash heredocs with backticks in `node -e` break:** write scripts to a file.
-- **category-pro:**
-  - Its local build once failed on `next/font/google` downloads (transient; the retry passed).
-  - Every build flips `next-env.d.ts`, so `git checkout -- next-env.d.ts`.
-  - Its check-ui-flows rewrites tracked PNGs in `scripts/`, so `git checkout -- scripts/` after a ship.
-  - It is desktop-only (owner decision).
-- **songdrop-app** has no Vercel git integration: deploy with `vercel --prod` from `web/` after pushing (recorded in the plan constraints).
-- **Traffic data:** Vercel metrics on Hobby are free only for the last ~24 h, per project, filter `NOT clientUserAgent:*HeadlessChrome*`. Reading Chrome history was blocked by the permission classifier as personal data; do not retry.
-- **Impeccable decision page:** `serve-question` exits 4 ("page closed") even while the tab looks open; don't wait on it. The finish reviewer and documenter were not run (CLAUDE.md caps verification at one bounded round); DESIGN.md was hand-written from the build.
-- **Local server:** `next start -p 4870` may still hold port 4870. Stop it with PowerShell: `Get-NetTCPConnection -LocalPort 4870 -State Listen | % { Stop-Process -Id $_.OwningProcess -Force }`.
+- **Report gate:** `report()` sends only when `VERCEL_ENV`/`NEXT_PUBLIC_VERCEL_ENV` is `production`. A pulled `.env.local` holds `VERCEL_ENV=production`: start local servers with `VERCEL_ENV=development` in the process env. Editing/copying `.env.local` wholesale is blocked by the permission classifier; targeted line edits for an owner-asked change worked.
+- **MCP servers (mcp-handler / @modelcontextprotocol) turn a thrown tool error into an `isError` result**, so real MCP faults are invisible unless reported inside the tool wrapper.
+- **Apps' own flow checks create deliberate failures** (fake queues, refused sockets, throwaway users). After wiring an app, run its `check-ui-flows` and confirm zero new Sentry events; stub Sentry in those steps or skip `.test`/`.invalid` fixtures.
+- **Proof methods that write nothing:** browser 503-intercept (`page.route(...).fulfill({status:503})`, script pattern in the standard); a correctly signed webhook with a malformed body (Mini Me, Keila: delete the webhook log row after); a malformed authenticated request (Livery `null` body, now 400 instead).
+- **Sentry API:** issues list defaults to unresolved; pass `query=` empty for all states. `lifetime.count` is all-time; `substatus` regressed/escalating marks "came back". Area per issue: `events/?dataset=errors&field=issue.id&field=area`.
+- **Tailwind v4 utilities lose to unlayered custom classes** (`.form-label` uppercase beats `normal-case` on the same element).
+- **Git Bash:** `MSYS_NO_PATHCONV=1` mangles `~/...` script paths; call ship as `node C:/Users/Kasutaja/.claude/scripts/ship.mjs`. Heredocs with backticks/`\\` break: write patch scripts with the Write tool.
+- **ApplyKit inventory (23.10 scan, re-verify):** AI routes (`api/chat` stream + JSON, interview-prep compile, jobs analyze-fit, jobs parse, cv import, documents import/from-workspace, admin models), PDF export, Stripe verify returns 200 `{paid:false}` on any error, scrapers (cvkeskus, cvonline, tootukassa clients), jobs/add storage upload and silent PDF extract, `/api/loop` (Bearer `LOOP_TOKEN`; the queue Käsilane's apply-jobs agent reads) per-portal and per-item errors, many DB catch-500s, browser PDF export and chat fetches. Deploys: `ship.mjs` (git integration is on). Flow check logs in as `e2e-applykit@example.com` (see its scripts).
+- **VAIB** home fails verify-deploy at 375 by design (desktop-only gallery, owner's exception); its own check-ui-flows is the gate.
+- **The session's background wake-ups did not fire overnight** (machine idle); don't rely on long background waits for deploy slots.
 
 ## Pending owner items
-- [ ] Confirm or edit the watched-app list (plan, R1.1).
-- [ ] Delete the junk Sentry projects `javascript-nextjs` and `keeletark` (Task 1.1, owner's).
-- [ ] Glance at the two Sentry alert emails from 23.10 (KEEPR-3 at ~22:02, HINNAVAHT-1 at ~22:23 Tallinn) to confirm email delivery.
-- [ ] Decide on the plaintext Keepr password committed in `keepr/scripts/login-visible.mjs` (private repo).
+- [ ] Delete junk Sentry projects `javascript-nextjs` and `keeletark` (CLI token can't).
+- [ ] Optional: confirm or edit the watched-app list (plan R1.1).
+- [ ] Optional: say yes/no to the cherry-on-top ideas above.
 
 ## The continuation prompt (paste into the fresh window)
 ```
-Continue the Launchpad + Sentry build. Read C:\Users\Kasutaja\Claude_Projects\launchpad\docs\RESUME-HERE.md first and follow it exactly — settled decisions are settled, do not re-ask them.
-Mission: on branch `rebuild` in C:\Users\Kasutaja\Claude_Projects\launchpad, fix the Important findings in docs/reviews/2026-10-23-phase2-gate.md (Sentry-unreachable headline, maxDuration, junk Sentry rows, plan deviation note, check-ui-flows: unreachable step + render time + a real Problems-block assertion), write a Responses line for each, then merge rebuild into master and ship with `node ~/.claude/scripts/ship.mjs /` (count Vercel deploys first; ~90/100 used on 23.10), and give the owner the one-year ?key= link from .env.local. After that: ask the owner to confirm the watched list (plan R1.1) and continue R2 per app.
-Sources: the plan docs/plans/2026-10-23-launchpad-rebuild-sentry.md, both files in docs/reviews/, SPEC.md, PRODUCT.md, DESIGN.md, STACK.md, docs/SENTRY-STANDARD.md.
-Gates: npm test, a clean next build, scripts/check-ui-flows.mjs green locally and against production via ship.mjs, code-reviewer on the fix diff. Standing rules: repo lock with age check + noclobber; read each app's DEVIATIONS/SPEC before wiring Sentry (Keepr and Hinnavaht: no server SDK); short status line to the owner every few steps; the owner deletes the junk Sentry projects, not you. Go.
+Continue the Launchpad + Sentry finish. Read C:\Users\Kasutaja\Claude_Projects\launchpad\docs\RESUME-HERE.md first and follow it exactly — settled decisions are settled, do not re-ask them.
+Mission: the six loose ends in "Undone", in order: (1) ApplyKit R2 real-failure reporting + production proof; (2) "last ran" checks for scheduled jobs (show the mechanism in a few plain lines first, then build); (3) "last heard from" per app on Launchpad; (4) code locations (stack frames) in report.ts, reference copy then the 8 app copies; (5) Athlon Next 14 Sentry fix (vercel --prod); (6) finish: review.mjs with responses, /simplify, ship.mjs, §2 checks, /wrap-up. Goal: maximum benefit to Sentry monitoring.
+Sources: launchpad/docs/plans/2026-10-23-launchpad-rebuild-sentry.md, launchpad/docs/reviews/, launchpad/docs/SENTRY-STANDARD.md, launchpad/SPEC.md, STACK.md, each app's own STACK/SPEC/DEVIATIONS (all under C:\Users\Kasutaja\Claude_Projects\).
+Gates: npm test, clean next build, the app's check-ui-flows green locally and on production via ship.mjs, a production proof per app (issue arrives and shows on Launchpad), zero Sentry noise from the app's own test run, code-reviewer on each diff. Standing rules: NO alert emails (disable the default rule on any new Sentry project); repo lock with age check + noclobber and a git status look; count Vercel deploys before shipping; Keepr/Hinnavaht never get the server SDK; short plain-language status lines to the owner every few steps. Go.
 ```
