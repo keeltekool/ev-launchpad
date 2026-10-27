@@ -6,11 +6,11 @@ import { buildBoard, type Row } from "./board.ts";
 import { isUp } from "./health.ts";
 import type { AppEntry } from "./apps.ts";
 import { getSentrySummary, type SentryApp, type SentryIssue } from "./sentry.ts";
-import { downPrompt, errorPrompt } from "./prompt.ts";
+import { downPrompt, errorPrompt, latePrompt, lateLines } from "./prompt.ts";
 
 const app = (name: string, extra: Partial<AppEntry> = {}): AppEntry => ({ name, url: `https://${name.toLowerCase()}.test`, status: "live", links: [], ...extra });
 const up = { up: true, status: 200, ms: 100 };
-const quiet: SentryApp = { projectUrl: "https://sentry.test/p", newIssue24h: false, openCount: 0 };
+const quiet: SentryApp = { projectUrl: "https://sentry.test/p", newIssue24h: false, openCount: 0, silent: false };
 const anIssue = (open: boolean): SentryIssue => ({ id: "9", shortId: "APP-9", title: "Boom", url: "https://sentry.test/9", count: 3, firstSeen: "2026-10-20T10:00:00Z", lastSeen: "2026-10-23T10:00:00Z", state: open ? "open" : "resolved", back: false });
 const issue = (newIssue24h: boolean, open = true): SentryApp => ({ ...quiet, newIssue24h, openCount: open ? 1 : 0, latest: anIssue(open) });
 const names = (rows: Row[]) => rows.map((r) => r.name);
@@ -88,11 +88,14 @@ test("registry: every url is https, names and Sentry slugs are unique, every liv
   assert.deepEqual(apps.filter((a) => a.status === "live" && !a.repo).map((a) => a.name), []);
 });
 
-// Sentry calls answered from a table keyed by path (projects/, issues/, events/).
+// Sentry calls answered from a table keyed by path (projects/, issues/, events/); "events:spans" and "events:errors-14d"
+// answer the last-heard queries (dataset spans, and dataset errors over 14 days).
 const sentryAnswers = (answers: Record<string, unknown>) => {
   globalThis.fetch = (async (url: string) => {
-    const path = new URL(url).pathname.split("/").at(-2)!;
-    return path in answers ? Response.json(answers[path]) : new Response("{}", { status: 401 });
+    const u = new URL(url);
+    const path = u.pathname.split("/").at(-2)!;
+    const key = path !== "events" ? path : u.searchParams.get("dataset") === "spans" ? "events:spans" : u.searchParams.get("statsPeriod") === "14d" ? "events:errors-14d" : path;
+    return key in answers ? Response.json(answers[key]) : new Response("{}", { status: 401 });
   }) as typeof fetch;
 };
 
@@ -158,4 +161,58 @@ test("passcode: \"T\u00fcranahk\" matches whether \u00fc is one character or u +
   assert.equal(passcodeMatches("Turanahk"), false);
   assert.equal(passcodeMatches("lp-old"), false);
   delete process.env.LAUNCHPAD_PASSCODE;
+});
+
+test("report() turns V8 and Safari stacks into Sentry frames, oldest call first", async () => {
+  const { frames } = await import("./report.ts");
+  const v8 = "Error: boom\n    at load (/var/task/.next/server/app/api/x/route.js:12:34)\n    at async handler (/var/task/node_modules/next/dist/a.js:5:6)\n    at /var/task/b.js:7:8";
+  assert.deepEqual(frames(v8), [
+    { function: "?", filename: "/var/task/b.js", lineno: 7, colno: 8, in_app: true },
+    { function: "async handler", filename: "/var/task/node_modules/next/dist/a.js", lineno: 5, colno: 6, in_app: false },
+    { function: "load", filename: "/var/task/.next/server/app/api/x/route.js", lineno: 12, colno: 34, in_app: true },
+  ]);
+  assert.deepEqual(frames("save@https://app.test/_next/static/chunks/1.js:3:9"), [{ function: "save", filename: "https://app.test/_next/static/chunks/1.js", lineno: 3, colno: 9, in_app: true }]);
+  assert.deepEqual(frames(undefined), []);
+});
+
+test("Sentry: last heard from is the newest error or span; silent only for an app that used to send timings", async () => {
+  sentryAnswers({
+    projects: [{ id: "1", slug: "busy", firstTransactionEvent: true }, { id: "2", slug: "light", firstTransactionEvent: false }, { id: "3", slug: "gone", firstTransactionEvent: true }],
+    issues: [],
+    events: { data: [] },
+    "events:spans": { data: [{ project: "busy", "max(timestamp)": Date.parse("2026-10-23T11:00:00Z") / 1000 }] },
+    "events:errors-14d": { data: [{ project: "busy", "max(timestamp)": "2026-10-23T09:00:00+00:00" }, { project: "light", "max(timestamp)": "2026-10-20T08:00:00+00:00" }] },
+  });
+  const s = await getSentrySummary();
+  assert.deepEqual([s.bySlug.busy.lastHeard, s.bySlug.light.lastHeard, s.bySlug.gone.lastHeard], ["2026-10-23T11:00:00.000Z", "2026-10-20T08:00:00.000Z", null]);
+  assert.deepEqual([s.bySlug.busy.silent, s.bySlug.light.silent, s.bySlug.gone.silent], [false, false, true]);
+  // A light-reporter app with nothing in 14 days is quiet, not silent.
+  sentryAnswers({ projects: [{ id: "2", slug: "light", firstTransactionEvent: false }], issues: [], events: { data: [] }, "events:spans": { data: [] }, "events:errors-14d": { data: [] } });
+  assert.deepEqual([(await getSentrySummary()).bySlug.light.lastHeard, (await getSentrySummary()).bySlug.light.silent], [null, false]);
+  // The last-heard queries refused: the board still works, without that line.
+  sentryAnswers({ projects: [{ id: "1", slug: "busy", firstTransactionEvent: true }], issues: [], events: { data: [] } });
+  const r = await getSentrySummary();
+  assert.deepEqual([r.ok, r.bySlug.busy.lastHeard, r.bySlug.busy.silent], [true, undefined, false]);
+});
+
+test("late: a job past its window or never run is a problem; a failing last-ran page too, unless the app is down", () => {
+  const now = new Date("2026-10-27T12:00:00Z");
+  const job = (job: string, lastRan: string | null, lateAfterHours: number) => ({ job, lastRan, lateAfterHours });
+  const board = buildBoard(
+    [app("Paper"), app("Fresh"), app("Blind"), app("Gone")],
+    { ok: true, bySlug: {} },
+    { Paper: up, Fresh: up, Blind: up, Gone: { up: false, status: 500, ms: 100 } },
+    now,
+    {
+      Paper: { ok: true, jobs: [job("edition", "2026-10-18T06:00:00Z", 108), job("source check", "2026-10-27T09:00:00Z", 26), job("digest", null, 192)] },
+      Fresh: { ok: true, jobs: [job("poll", "2026-10-27T03:30:00Z", 20)] },
+      Blind: { ok: false, reason: "answered 500" },
+      Gone: { ok: false, reason: "did not answer" },
+    },
+  );
+  assert.deepEqual(board.problems.map((r) => [r.name, r.problems]), [["Blind", ["late"]], ["Gone", ["down"]], ["Paper", ["late"]]]);
+  const paper = board.problems.find((r) => r.name === "Paper")!;
+  assert.deepEqual(lateLines(paper, board.checkedAt), ["edition last ran 9 d ago (late after 4.5 d)", "digest has never run (late after 8 d)"]);
+  assert.deepEqual(lateLines(board.problems[0], board.checkedAt), ["its last-ran page answered 500, so late jobs would go unseen"]);
+  assert.ok(latePrompt(paper, board.checkedAt).includes("- edition last ran 9 d ago"));
 });

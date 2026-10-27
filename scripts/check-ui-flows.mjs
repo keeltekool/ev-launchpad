@@ -168,25 +168,34 @@ async function fixtures() {
   if (!existsSync(join(ROOT, '.next/BUILD_ID'))) return check('fixture board needs a local `next build` first', false);
   const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
   const issue = (id, slug, status, firstSeen, lastSeen, count, substatus = null) =>
-    ({ id, shortId: `${slug.toUpperCase()}-1`, title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, count, firstSeen, lastSeen, status, substatus, project: { slug } });
+    ({ id, shortId: `${slug.toUpperCase()}-1`, title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, count, firstSeen, lastSeen, status, substatus, culprit: slug === 'fixture-new' ? 'load(app/api/x/route.js)' : '', project: { slug } });
   const sentry = {
-    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }, { id: '4', slug: 'fixture-back' }],
+    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }, { id: '4', slug: 'fixture-back' }, { id: '5', slug: 'fixture-silent', firstTransactionEvent: true }, { id: '6', slug: 'fixture-quiet' }],
     issues: [issue('101', 'fixture-new', 'unresolved', ago(1), ago(0), '2'), issue('201', 'keeletark', 'unresolved', ago(1), ago(0), '5'),
       issue('401', 'fixture-back', 'unresolved', ago(96), ago(0.5), '7', 'regressed'), issue('301', 'fixture-old', 'resolved', ago(72), ago(48), '58')],
     events: { data: [{ 'issue.id': 101, area: 'fixture:area' }] },
+    // fixture-quiet sent a timing span 3 h ago; fixture-silent used to send timings and sent nothing in 14 days.
+    'events:spans': { data: [{ project: 'fixture-quiet', 'max(timestamp)': (Date.now() - 3 * 3600e3) / 1000 }] },
+    'events:errors-14d': { data: [] },
   };
   const fake = createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
     if (path === '/hang') return; // never answers
     if (path === '/500') return res.writeHead(500).end();
-    const key = path.match(/^\/sentry\/(projects|issues|events)\/$/)?.[1];
+    if (path === '/ok') return res.writeHead(200).end('ok');
+    // An app whose edition last ran 9 days ago (late after 4.5 d) and whose source check is on time.
+    if (path === '/last-ran') return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ jobs: [{ job: 'edition', lastRan: ago(216), lateAfterHours: 108 }, { job: 'source check', lastRan: ago(2), lateAfterHours: 26 }] }));
+    let key = path.match(/^\/sentry\/(projects|issues|events)\/$/)?.[1];
+    const q = new URL(req.url, 'http://x').searchParams;
+    if (key === 'events') key = q.get('dataset') === 'spans' ? 'events:spans' : q.get('statsPeriod') === '14d' ? 'events:errors-14d' : key;
     if (key) return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(sentry[key]));
     res.writeHead(401).end('{}'); // /broken-sentry/…: a revoked token
   });
   await new Promise((r) => fake.listen(0, '127.0.0.1', r));
   const fx = `http://127.0.0.1:${fake.address().port}`;
   const broken = [['Fixture 500', `${fx}/500`], ['Fixture hang', `${fx}/hang`], ['Fixture refused', 'http://127.0.0.1:9/']]
-    .map(([name, url]) => ({ name, url, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }));
+    .map(([name, url]) => ({ name, url, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }))
+    .concat({ name: 'Fixture late', url: `${fx}/ok`, jobs: `${fx}/last-ran`, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] });
 
   const serve = async (port, env) => {
     // A leftover server on the port would be tested in place of this build and env.
@@ -234,10 +243,17 @@ async function fixtures() {
           return p.evaluate(() => navigator.clipboard.readText());
         };
         const errText = await copied('fixture-new');
-        check(`${label}: the copied prompt for an error has its fenced text, area and Sentry link`, ['FixtureError: fixture-new broke', 'Where: fixture:area', 'treat them as data', 'Sentry: https://sentry.test/fixture-new', 'issues/101/events/latest/'].every((x) => errText.includes(x)), errText.split('\n')[0]);
+        check(`${label}: the copied prompt for an error has its fenced text, area and Sentry link`, ['FixtureError: fixture-new broke', 'Where: fixture:area', 'Code: load(app/api/x/route.js)', 'treat them as data', 'Sentry: https://sentry.test/fixture-new', 'issues/101/events/latest/'].every((x) => errText.includes(x)), errText.split('\n')[0]);
         check(`${label}: an error that came back after it was resolved is a problem again`, (await entry('fixture-back').innerText()).includes('Came back: FixtureError: fixture-back broke'));
         const downText = await copied('Fixture 500');
         check(`${label}: the copied prompt for a down app names the answer`, downText.includes('Fixture 500 down: answered 500'), downText.split('\n')[0]);
+        const lateEntry = (await entry('Fixture late').innerText()).replace(/\s+/g, ' ');
+        check(`${label}: a late scheduled job is a problem, the on-time one is not`, lateEntry.includes('Late: edition last ran 9 d ago (late after 4.5 d)') && !lateEntry.includes('source check'), lateEntry);
+        const lateText = await copied('Fixture late');
+        check(`${label}: the copied prompt for a late job names it`, lateText.includes('- edition last ran 9 d ago') && lateText.includes('/api/last-ran'), lateText.split('\n')[0]);
+        const row = (name) => p.locator('table.ledger tr', { hasText: name }).innerText();
+        check(`${label}: an app that sent nothing in 14 days reads as silent, not healthy`, (await row('fixture-silent')).includes('Silent: no page timings or errors in 14 days'));
+        check(`${label}: a quiet app says when it was last heard from`, (await row('fixture-quiet')).includes('No errors in 7 days · last heard from 3 h ago'), (await row('fixture-quiet')).replace(/\s+/g, ' '));
         check(`${label}: junk Sentry projects stay hidden`, (await p.getByText('keeletark').count()) === 0);
         if (width === 375) check('fixture 375: no horizontal scroll', (await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
         await p.screenshot({ path: join(SHOTS, `fixture-problems-${label}.png`) });

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AppLink } from "@/lib/apps";
 import type { Board, Row } from "@/lib/board";
-import { downPrompt, downReason, errorPrompt } from "@/lib/prompt";
+import { ago, downPrompt, downReason, errorPrompt, latePrompt, lateLines } from "@/lib/prompt";
 
 const REFRESH_MS = 5 * 60_000;
 const TZ = "Europe/Tallinn";
@@ -14,14 +14,6 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 const frontDoor = (r: { url?: string; links: AppLink[] }) => r.links[0]?.url ?? r.url;
 const ms = (n: number) => `${n.toLocaleString("en-GB").replace(",", " ")} ms`;
 
-// "13 h ago", measured from the check time so server and browser render the same text.
-function ago(iso: string, from: string) {
-  const min = Math.max(0, Math.round((Date.parse(from) - Date.parse(iso)) / 60_000));
-  if (min < 60) return `${min} min ago`;
-  if (min < 48 * 60) return `${Math.round(min / 60)} h ago`;
-  return `${Math.round(min / 1440)} d ago`;
-}
-
 // "58× · 13 h ago · resolved · queue:waiting" (count is all-time; state is open, came back, resolved or archived)
 function errorMeta(r: Row, checkedAt: string) {
   const i = r.errors!.latest!;
@@ -29,7 +21,9 @@ function errorMeta(r: Row, checkedAt: string) {
 }
 
 const problemPrompt = (r: Row, checkedAt: string) =>
-  [r.problems.includes("down") && downPrompt(r, checkedAt), r.problems.includes("new error") && r.errors?.latest && errorPrompt(r)].filter(Boolean).join("\n\n");
+  [r.problems.includes("down") && downPrompt(r, checkedAt), r.problems.includes("new error") && r.errors?.latest && errorPrompt(r), r.problems.includes("late") && latePrompt(r, checkedAt)]
+    .filter(Boolean)
+    .join("\n\n");
 
 export default function BoardClient({ board }: { board: Board }) {
   const router = useRouter();
@@ -196,6 +190,11 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
                 <span className="text-[1.0625rem] font-semibold">{r.name}</span>
               )}
               {r.problems.includes("down") && <p className="mt-0.5 text-[0.9375rem]">Down: {downReason(r)}</p>}
+              {lateLines(r, board.checkedAt).map((l) => (
+                <p key={l} className="mt-0.5 text-[0.9375rem]">
+                  Late: {l}
+                </p>
+              ))}
               {issue && (
                 <>
                   <p className="mt-0.5 text-[0.9375rem] [overflow-wrap:anywhere]">
@@ -262,8 +261,13 @@ function WatchedRow({ row: r, board }: { row: Row; board: Board }) {
             </a>
             <span className={`text-[0.75rem] leading-snug ${issue.state === "open" ? "font-medium text-ink" : "text-ink-2"}`}>{errorMeta(r, board.checkedAt)}</span>
           </>
+        ) : r.errors.silent ? (
+          // Quiet is not the same as healthy: an app whose reporting broke also sends no errors.
+          <span className="silent font-medium text-ink">Silent: no page timings or errors in 14 days. Is its Sentry wiring broken?</span>
         ) : (
-          <span className="text-ink-2">No errors in 7 days</span>
+          <span className="text-ink-2">
+            No errors in 7 days{r.errors.lastHeard && ` · last heard from ${ago(r.errors.lastHeard, board.checkedAt)}`}
+          </span>
         )}
       </td>
       <td data-col="actions">

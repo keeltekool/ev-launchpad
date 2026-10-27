@@ -4,6 +4,19 @@ const DSN = new URL("https://4d7808d147ff807e68c60d6c28255b6c@o4510963717439488.
 const ENDPOINT = `${DSN.origin}/api${DSN.pathname}/envelope/?sentry_version=7&sentry_key=${DSN.username}`;
 const lastSent = new Map<string, number>();
 
+// Code locations for Sentry's stack view: V8 "at fn (file:1:2)" / "at file:1:2" and Firefox/Safari "fn@file:1:2"
+// lines, oldest call first as Sentry expects. Lines it cannot read are skipped.
+export function frames(stack = "") {
+  return stack
+    .split("\n")
+    .flatMap((line) => {
+      const m = line.match(/^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/) ?? line.match(/^(.*?)@(.+?):(\d+):(\d+)$/);
+      if (!m) return [];
+      return [{ function: m[1] || "?", filename: m[2], lineno: Number(m[3]), colno: Number(m[4]), in_app: !m[2].includes("node_modules") }];
+    })
+    .reverse();
+}
+
 // extra.kind splits one area's failures into separate issues (e.g. "all" vs "partial", an HTTP status), so a
 // full outage does not hide inside an issue that a partial failure already opened.
 export async function report(area: string, err: unknown, extra?: Record<string, unknown>) {
@@ -16,6 +29,7 @@ export async function report(area: string, err: unknown, extra?: Record<string, 
   const key = fingerprint.join("|");
   if (Date.now() - (lastSent.get(key) ?? 0) < 60_000) return;
   lastSent.set(key, Date.now());
+  const stack = frames(e.stack);
   const event_id = crypto.randomUUID().replace(/-/g, "");
   const event = {
     event_id,
@@ -27,7 +41,7 @@ export async function report(area: string, err: unknown, extra?: Record<string, 
     tags: { area, runtime: typeof window === "undefined" ? "server" : "browser" },
     extra: { ...extra, stack: e.stack },
     fingerprint,
-    exception: { values: [{ type: e.name, value: e.message }] },
+    exception: { values: [{ type: e.name, value: e.message, ...(stack.length ? { stacktrace: { frames: stack } } : {}) }] },
   };
   const body = [JSON.stringify({ event_id, sent_at: new Date().toISOString() }), JSON.stringify({ type: "event" }), JSON.stringify(event)].join("\n");
   try {

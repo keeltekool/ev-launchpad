@@ -278,6 +278,7 @@
     "name": "Hinnavaht",
     "url": "https://hinnavaht.vercel.app",
     "sentry": "hinnavaht",
+    "jobs": "https://hinnavaht.vercel.app/api/last-ran",
     "status": "live",
     "links": [
       {
@@ -325,6 +326,7 @@
     "name": "Keepr",
     "url": "https://keepr-psi.vercel.app",
     "sentry": "keepr",
+    "jobs": "https://keepr-psi.vercel.app/api/last-ran",
     "status": "live",
     "links": [
       {
@@ -338,6 +340,7 @@
     "name": "Keila Leht Ultra",
     "url": "https://keila-leht-ultra.vercel.app",
     "sentry": "keila-leht-ultra",
+    "jobs": "https://keila-leht-ultra.vercel.app/api/last-ran",
     "status": "live",
     "links": [
       {
@@ -425,6 +428,7 @@
     "name": "Market Watch",
     "url": "https://market-watch-seven.vercel.app",
     "sentry": "market-watch",
+    "jobs": "https://market-watch-seven.vercel.app/api/last-ran",
     "status": "live",
     "links": [
       {

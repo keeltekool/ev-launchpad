@@ -38,8 +38,36 @@ export function errorPrompt(r: Row): string {
     "```text",
     `Error: ${data(i.title)}`,
     ...(i.area ? [`Where: ${data(i.area)}`] : []),
+    ...(i.culprit ? [`Code: ${data(i.culprit)}`] : []),
     "```",
     ASK[i.state],
+  ].join("\n");
+}
+
+// "13 h ago", measured from the check time so server and browser render the same text.
+export function ago(iso: string, from: string) {
+  const min = Math.max(0, Math.round((Date.parse(from) - Date.parse(iso)) / 60_000));
+  if (min < 60) return `${min} min ago`;
+  if (min < 48 * 60) return `${Math.round(min / 60)} h ago`;
+  return `${Math.round(min / 1440)} d ago`;
+}
+
+const hours = (h: number) => (h < 48 ? `${h} h` : `${+(h / 24).toFixed(1)} d`);
+
+// "edition last ran 9 d ago (late after 4.5 d)", or why the app's last-ran page could not be read.
+export function lateLines(r: Pick<Row, "late" | "jobsError">, checkedAt: string): string[] {
+  return [
+    ...r.late.map((j) => `${j.job} ${j.lastRan ? `last ran ${ago(j.lastRan, checkedAt)}` : "has never run"} (late after ${hours(j.lateAfterHours)})`),
+    ...(r.jobsError ? [`its last-ran page ${r.jobsError}, so late jobs would go unseen`] : []),
+  ];
+}
+
+export function latePrompt(r: Row, checkedAt: string): string {
+  return [
+    `Launchpad shows a scheduled job in ${r.name} as late at ${when(checkedAt)} (Tallinn):`,
+    ...lateLines(r, checkedAt).map((l) => `- ${l}`),
+    ...where(r),
+    "Find why it stopped (its scheduler: Vercel cron, GitHub Actions or the agent schedule; its last run and logs) and propose the fix. The job list is the app's /api/last-ran.",
   ].join("\n");
 }
 

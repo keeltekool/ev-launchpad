@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { cacheLife } from "next/cache";
 import { registry } from "@/lib/apps";
 import { buildBoard } from "@/lib/board";
-import { checkApp } from "@/lib/health";
+import { checkApp, checkJobs } from "@/lib/health";
 import { getSentrySummary } from "@/lib/sentry";
 import BoardClient from "./board-client";
 
@@ -13,11 +13,12 @@ async function getBoard() {
   // Fresh for 60 s and gone after 2 min, so a rare visit re-checks instead of showing an hour-old board.
   // A lifetime this short is runtime data to Next, hence the Suspense boundary below.
   cacheLife({ stale: 60, revalidate: 60, expire: 120 });
-  const [sentry, checks] = await Promise.all([
+  const [sentry, checks, jobs] = await Promise.all([
     getSentrySummary(),
     Promise.all(live.map(async (a) => [a.name, await checkApp(a.url)] as const)),
+    Promise.all(live.filter((a) => a.jobs).map(async (a) => [a.name, await checkJobs(a.jobs!)] as const)),
   ]);
-  return buildBoard(registry, sentry, Object.fromEntries(checks));
+  return buildBoard(registry, sentry, Object.fromEntries(checks), new Date(), Object.fromEntries(jobs));
 }
 
 async function Board() {

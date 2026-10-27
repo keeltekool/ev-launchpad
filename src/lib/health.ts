@@ -1,4 +1,8 @@
 export type Health = { up: boolean; status: number | null; ms: number; timedOut?: boolean };
+// A scheduled job as the app's last-ran page reports it: when it last ran (null: never) and after how many hours
+// without a run it counts as late.
+export type Job = { job: string; lastRan: string | null; lateAfterHours: number };
+export type Jobs = { ok: true; jobs: Job[] } | { ok: false; reason: string };
 
 // 401/403 = the server answered (a login wall or a bot block), so the app is up.
 export const isUp = (status: number) => status < 400 || status === 401 || status === 403;
@@ -22,5 +26,16 @@ export async function checkApp(url: string): Promise<Health> {
     return { up: isUp(r.status), status: r.status, ms: Date.now() - t0 };
   } catch {
     return { up: false, status: null, ms: Date.now() - t0, timedOut: signal.aborted };
+  }
+}
+
+export async function checkJobs(url: string): Promise<Jobs> {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(10_000), headers: { "user-agent": "Launchpad health check" } });
+    if (!r.ok) return { ok: false, reason: `answered ${r.status}` };
+    const { jobs } = (await r.json()) as { jobs: Job[] };
+    return { ok: true, jobs };
+  } catch {
+    return { ok: false, reason: "did not answer" };
   }
 }
