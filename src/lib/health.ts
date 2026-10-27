@@ -33,7 +33,10 @@ export async function checkJobs(url: string): Promise<Jobs> {
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(10_000), headers: { "user-agent": "Launchpad health check" } });
     if (!r.ok) return { ok: false, reason: `answered ${r.status}` };
-    const { jobs } = (await r.json()) as { jobs: Job[] };
+    // Another app's answer: a malformed list must fail this check, not the board (or read as on time).
+    const { jobs } = (await r.json()) as { jobs?: unknown };
+    const valid = (j: Job) => typeof j?.job === "string" && (j.lastRan === null || !Number.isNaN(Date.parse(j.lastRan))) && j.lateAfterHours > 0;
+    if (!Array.isArray(jobs) || !jobs.every(valid)) return { ok: false, reason: "answered an unreadable job list" };
     return { ok: true, jobs };
   } catch {
     return { ok: false, reason: "did not answer" };

@@ -37,7 +37,7 @@ For the owner alone: one page that answers **"is anything of mine broken right n
 - Layout: mobile first, with a real desktop layout at 1440 and 1920.
 
 ## Data
-- `data/apps.json` registry entry: `{ name, url, repo?, sentry?, status: "live" | "dormant", links: [{ label, url }] }`. `repo` is the folder under `C:\Users\Kasutaja\Claude_Projects\` that the copied prompt names. `url` is the address that gets checked. It is seeded from the old `projects.json` plus the live apps in global STACK.md.
+- `data/apps.json` registry entry: `{ name, url, repo?, sentry?, jobs?, status: "live" | "dormant", links: [{ label, url }] }`. `jobs` is the app's last-ran page (added 27.10, RESUME item 2): `GET` answers `{ jobs: [{ job, lastRan: ISO | null, lateAfterHours }] }`, public, timestamps only. A job past its window, or a last-ran page that fails or answers an unreadable list while the app is up, is a red problem ("late"). `repo` is the folder under `C:\Users\Kasutaja\Claude_Projects\` that the copied prompt names. `url` is the address that gets checked. It is seeded from the old `projects.json` plus the live apps in global STACK.md.
 - Sentry: org `bits-and-pixels-ou` (EU, `https://de.sentry.io/api/0`). The read token is the existing Vercel env `SENTRY_AUTH_TOKEN`.
 - Health check: a server-side GET to `url` that follows redirects, with a 10 s timeout. It records the status code and ms.
 

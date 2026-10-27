@@ -173,6 +173,7 @@ test("report() turns V8 and Safari stacks into Sentry frames, oldest call first"
   ]);
   assert.deepEqual(frames("save@https://app.test/_next/static/chunks/1.js:3:9"), [{ function: "save", filename: "https://app.test/_next/static/chunks/1.js", lineno: 3, colno: 9, in_app: true }]);
   assert.deepEqual(frames(undefined), []);
+  assert.equal(frames("    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)")[0].in_app, false);
 });
 
 test("Sentry: last heard from is the newest error or span; silent only for an app that used to send timings", async () => {
@@ -215,4 +216,15 @@ test("late: a job past its window or never run is a problem; a failing last-ran 
   assert.deepEqual(lateLines(paper, board.checkedAt), ["edition last ran 9 d ago (late after 4.5 d)", "digest has never run (late after 8 d)"]);
   assert.deepEqual(lateLines(board.problems[0], board.checkedAt), ["its last-ran page answered 500, so late jobs would go unseen"]);
   assert.ok(latePrompt(paper, board.checkedAt).includes("- edition last ran 9 d ago"));
+});
+
+test("a last-ran page with an unreadable job list is a failed check, never a crash or an on-time job", async () => {
+  const { checkJobs } = await import("./health.ts");
+  const answering = (body: unknown) => (globalThis.fetch = (async () => Response.json(body)) as typeof fetch);
+  for (const body of [{}, { jobs: "x" }, { jobs: [{ job: "poll", lastRan: "yesterday", lateAfterHours: 30 }] }, { jobs: [{ job: "poll", lastRan: null, lateAfterHours: 0 }] }]) {
+    answering(body);
+    assert.deepEqual(await checkJobs("https://app.test/api/last-ran"), { ok: false, reason: "answered an unreadable job list" }, JSON.stringify(body));
+  }
+  answering({ jobs: [{ job: "poll", lastRan: null, lateAfterHours: 30 }] });
+  assert.equal((await checkJobs("https://app.test/api/last-ran")).ok, true);
 });

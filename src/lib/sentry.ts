@@ -78,7 +78,7 @@ export async function getSentrySummary(now = Date.now()): Promise<SentrySummary>
       get<Areas>(`events/?${production([["dataset", "errors"], ["field", "issue.id"], ["field", "area"], ["field", "max(timestamp)"], ["sort", "-max(timestamp)"], ["per_page", "100"]])}`),
       // "Last heard from": the newest error and the newest timing span per project. Optional: without them the board
       // only loses that line.
-      Promise.all([newest("errors"), newest("spans")]).then((r) => r.flatMap((d) => d.data), () => null),
+      Promise.all([newest("errors"), newest("spans")].map((q) => q.catch(() => null))).then((r) => (r.some(Boolean) ? r.flatMap((d) => d?.data ?? []) : null)),
     ]);
     const heard = new Map<string, string>();
     for (const h of heardRows ?? []) {

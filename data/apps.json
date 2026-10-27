@@ -428,7 +428,6 @@
     "name": "Market Watch",
     "url": "https://market-watch-seven.vercel.app",
     "sentry": "market-watch",
-    "jobs": "https://market-watch-seven.vercel.app/api/last-ran",
     "status": "live",
     "links": [
       {

@@ -263,7 +263,7 @@ function WatchedRow({ row: r, board }: { row: Row; board: Board }) {
           </>
         ) : r.errors.silent ? (
           // Quiet is not the same as healthy: an app whose reporting broke also sends no errors.
-          <span className="silent font-medium text-ink">Silent: no page timings or errors in 14 days. Is its Sentry wiring broken?</span>
+          <span className="font-medium text-ink">Silent: no page timings or errors in 14 days. Is its Sentry wiring broken?</span>
         ) : (
           <span className="text-ink-2">
             No errors in 7 days{r.errors.lastHeard && ` · last heard from ${ago(r.errors.lastHeard, board.checkedAt)}`}

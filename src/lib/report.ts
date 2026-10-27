@@ -12,7 +12,7 @@ export function frames(stack = "") {
     .flatMap((line) => {
       const m = line.match(/^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/) ?? line.match(/^(.*?)@(.+?):(\d+):(\d+)$/);
       if (!m) return [];
-      return [{ function: m[1] || "?", filename: m[2], lineno: Number(m[3]), colno: Number(m[4]), in_app: !m[2].includes("node_modules") }];
+      return [{ function: m[1] || "?", filename: m[2], lineno: Number(m[3]), colno: Number(m[4]), in_app: !/node_modules|^node:/.test(m[2]) }];
     })
     .reverse();
 }
