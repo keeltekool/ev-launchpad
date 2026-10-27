@@ -1,5 +1,7 @@
 # Launchpad + Sentry: RESUME HERE
 
+> **28.10.2026: the six loose ends below are DONE and shipped** (record: plan "Loose ends", docs/reviews/2026-10-28-0005-finish.md). Open owner items: memory project_launchpad. Do not redo the "Undone" list.
+
 > Fresh-session entry point. Read top to bottom, then the "Read next" files in order.
 > Settled decisions are settled: do not re-ask, do not re-litigate. Updated 27.10.2026.
 

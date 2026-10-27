@@ -3,7 +3,7 @@
 **Live:** https://ev-launchpad.vercel.app (passcode; a `?key=<passcode>` link sets a one-year cookie)
 **Repo:** https://github.com/keeltekool/ev-launchpad (Vercel project `launchpad`, framework Next.js)
 **Type:** Next.js 16.4.3 (App Router, Cache Components, Turbopack), Tailwind v4, Archivo
-**Last updated:** 2026-10-23 (rebuilt from the old static tile wall; spec `SPEC.md`, product `PRODUCT.md`, look `DESIGN.md`, plan `docs/plans/2026-10-23-launchpad-rebuild-sentry.md`)
+**Last updated:** 2026-10-28 (late scheduled jobs, last heard / silent, code locations in prompts; earlier: 2026-10-23 rebuilt from the old static tile wall; spec `SPEC.md`, product `PRODUCT.md`, look `DESIGN.md`, plan `docs/plans/2026-10-23-launchpad-rebuild-sentry.md`)
 
 ## Services
 
