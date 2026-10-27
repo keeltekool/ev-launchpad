@@ -114,6 +114,8 @@ Replaces Task 1.6, Gate 1 and Phase 3. Phase 2 (Launchpad) runs after Phase R2 a
 - [x] 4. Code locations: `frames()` in the reference `report.ts` and all 9 app copies; the copied prompt carries Sentry's culprit as `Code:` (function and file; the line is in the event).
 - [x] 5. Athlon `059a23b`: instrumentation moved to `src/` with `experimental.instrumentationHook` (old build had no `.next/server/instrumentation.js`), `sentry.client.config.ts` (Next 14 + webpack), production only.
 
+- Deviations from the finish review (28.10, docs/reviews/2026-10-28-0005-finish.md): R8, an issue that came back stays red while it keeps firing within 24 h (Sentry gives no regression time); R12, the flow check and the owner use the reusable `?key=` link (accepted at Gate 2), not a one-time one. Open: R1, the real passcode was in a public test until b8572d3 and must be rotated by the owner.
+
 ## Phase 4: finish
 `node ~/.claude/scripts/review.mjs` with a response to every finding; `/simplify`; ship; CLAUDE.md §2 verification; `/wrap-up` (Launchpad STACK.md, global STACK.md, memory `project_launchpad`).
 
