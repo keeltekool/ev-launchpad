@@ -46,7 +46,8 @@ export function buildBoard(apps: AppEntry[], sentry: SentrySummary, health: Reco
   // Without a `sentry` slug in the registry, a Sentry project named after the app is its project, so wiring an app
   // needs no Launchpad deploy.
   const slug = (a: AppEntry) => a.sentry ?? (sentry.bySlug[slugOf(a.name)] ? slugOf(a.name) : undefined);
-  const registered = new Set(apps.map(slug).filter(Boolean));
+  // Live apps only: a project matching a dormant app still shows, named by its slug.
+  const registered = new Set(apps.filter((a) => a.status === "live").map(slug).filter(Boolean));
   const live = [
     ...apps.filter((a) => a.status === "live").map((a) => row(a, slug(a), health[a.name], slug(a) ? sentry.bySlug[slug(a)!] : undefined, jobs[a.name], now)),
     // A Sentry project missing from the registry still shows, named by its slug.

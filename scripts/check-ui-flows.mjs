@@ -183,6 +183,7 @@ async function fixtures() {
     if (path === '/hang') return; // never answers
     if (path === '/500') return res.writeHead(500).end();
     if (path === '/ok') return res.writeHead(200).end('ok');
+    if (path === '/empty-json') return res.writeHead(200, { 'content-type': 'application/json' }).end('{}');
     // An app whose edition last ran 9 days ago (late after 4.5 d) and whose source check is on time.
     if (path === '/last-ran') return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ jobs: [{ job: 'edition', lastRan: ago(216), lateAfterHours: 108 }, { job: 'source check', lastRan: ago(2), lateAfterHours: 26 }] }));
     let key = path.match(/^\/sentry\/(projects|issues|events)\/$/)?.[1];
@@ -195,7 +196,7 @@ async function fixtures() {
   const fx = `http://127.0.0.1:${fake.address().port}`;
   const broken = [['Fixture 500', `${fx}/500`], ['Fixture hang', `${fx}/hang`], ['Fixture refused', 'http://127.0.0.1:9/']]
     .map(([name, url]) => ({ name, url, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }))
-    .concat({ name: 'Fixture late', url: `${fx}/ok`, jobs: `${fx}/last-ran`, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] });
+    .concat([['Fixture late', 'last-ran'], ['Fixture jobs 500', '500'], ['Fixture jobs empty', 'empty-json']].map(([name, path]) => ({ name, url: `${fx}/ok`, jobs: `${fx}/${path}`, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] })));
 
   const serve = async (port, env) => {
     // A leftover server on the port would be tested in place of this build and env.
@@ -249,6 +250,9 @@ async function fixtures() {
         check(`${label}: the copied prompt for a down app names the answer`, downText.includes('Fixture 500 down: answered 500'), downText.split('\n')[0]);
         const lateEntry = (await entry('Fixture late').innerText()).replace(/\s+/g, ' ');
         check(`${label}: a late scheduled job is a problem, the on-time one is not`, lateEntry.includes('Late: edition last ran 9 d ago (late after 4.5 d)') && !lateEntry.includes('source check'), lateEntry);
+        // A failing or malformed last-ran page is its own red line, and never breaks the board (finish review R13)
+        check(`${label}: a last-ran page answering 500 reads as such`, (await entry('Fixture jobs 500').innerText()).includes('Late: its last-ran page answered 500'));
+        check(`${label}: a last-ran page answering {} reads as unreadable`, (await entry('Fixture jobs empty').innerText()).includes('Late: its last-ran page answered an unreadable job list'));
         const lateText = await copied('Fixture late');
         check(`${label}: the copied prompt for a late job names it`, lateText.includes('- edition last ran 9 d ago') && lateText.includes('/api/last-ran'), lateText.split('\n')[0]);
         const row = (name) => p.locator('table.ledger tr', { hasText: name }).innerText();

@@ -35,7 +35,13 @@ export async function checkJobs(url: string): Promise<Jobs> {
     if (!r.ok) return { ok: false, reason: `answered ${r.status}` };
     // Another app's answer: a malformed list must fail this check, not the board (or read as on time).
     const { jobs } = (await r.json()) as { jobs?: unknown };
-    const valid = (j: Job) => typeof j?.job === "string" && (j.lastRan === null || !Number.isNaN(Date.parse(j.lastRan))) && j.lateAfterHours > 0;
+    // A lastRan in the future (a clock or timezone bug in the app) would never turn late: unreadable too.
+    const valid = (j: Job) =>
+      typeof j?.job === "string" &&
+      (j.lastRan === null || Date.parse(j.lastRan) < Date.now() + 5 * 60_000) &&
+      typeof j.lateAfterHours === "number" &&
+      Number.isFinite(j.lateAfterHours) &&
+      j.lateAfterHours > 0;
     if (!Array.isArray(jobs) || !jobs.every(valid)) return { ok: false, reason: "answered an unreadable job list" };
     return { ok: true, jobs };
   } catch {

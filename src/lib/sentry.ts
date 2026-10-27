@@ -76,17 +76,21 @@ export async function getSentrySummary(now = Date.now()): Promise<SentrySummary>
       get<Issue[]>(`issues/?${production([["query", ""], ["limit", "100"], ["sort", "date"]])}`),
       // The area tag of the 100 most recently seen issues.
       get<Areas>(`events/?${production([["dataset", "errors"], ["field", "issue.id"], ["field", "area"], ["field", "max(timestamp)"], ["sort", "-max(timestamp)"], ["per_page", "100"]])}`),
-      // "Last heard from": the newest error and the newest timing span per project. Optional: without them the board
-      // only loses that line.
-      Promise.all([newest("errors"), newest("spans")].map((q) => q.catch(() => null))).then((r) => (r.some(Boolean) ? r.flatMap((d) => d?.data ?? []) : null)),
+      // "Last heard from": the newest error and the newest timing span per project. Optional, and only both together:
+      // with one missing, a quiet app could read as silent. Without them the board only loses that line.
+      Promise.all([newest("errors"), newest("spans")]).then((r) => r.flatMap((d) => d.data), () => null),
     ]);
     const heard = new Map<string, string>();
     for (const h of heardRows ?? []) {
       const v = h["max(timestamp)"];
-      const at = new Date(typeof v === "number" ? v * 1000 : v).toISOString();
+      const t = new Date(typeof v === "number" ? v * 1000 : (v ?? NaN)).getTime();
+      if (Number.isNaN(t)) continue; // an unreadable row must not take the Sentry data down with it
+      const at = new Date(t).toISOString();
       if (at > (heard.get(h.project) ?? "")) heard.set(h.project, at);
     }
-    const areaOf = new Map(areas.data.filter((a) => a.area).map((a) => [String(a["issue.id"]), a.area!]));
+    // Rows come newest first: keep each issue's first (newest) area.
+    const areaOf = new Map<string, string>();
+    for (const a of areas.data) if (a.area && !areaOf.has(String(a["issue.id"]))) areaOf.set(String(a["issue.id"]), a.area);
     const bySlug: Record<string, SentryApp> = {};
     for (const p of projects) {
       if (RETIRED.has(p.slug)) continue;

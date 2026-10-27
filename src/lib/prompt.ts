@@ -57,7 +57,7 @@ const hours = (h: number) => (h < 48 ? `${h} h` : `${+(h / 24).toFixed(1)} d`);
 // "edition last ran 9 d ago (late after 4.5 d)", or why the app's last-ran page could not be read.
 export function lateLines(r: Pick<Row, "late" | "jobsError">, checkedAt: string): string[] {
   return [
-    ...r.late.map((j) => `${j.job} ${j.lastRan ? `last ran ${ago(j.lastRan, checkedAt)}` : "has never run"} (late after ${hours(j.lateAfterHours)})`),
+    ...r.late.map((j) => `${data(j.job)} ${j.lastRan ? `last ran ${ago(j.lastRan, checkedAt)}` : "has never run"} (late after ${hours(j.lateAfterHours)})`),
     ...(r.jobsError ? [`its last-ran page ${r.jobsError}, so late jobs would go unseen`] : []),
   ];
 }

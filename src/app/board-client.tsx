@@ -253,7 +253,7 @@ function WatchedRow({ row: r, board }: { row: Row; board: Board }) {
       </td>
       <td data-col="error" className="remark">
         {!r.errors ? (
-          <span className="text-ink-2">—</span>
+          <span className="text-ink-2">{board.sentryOk ? `No Sentry project "${r.sentry}"` : "—"}</span>
         ) : issue ? (
           <>
             <a href={issue.url} target="_blank" rel="noopener" title={issue.title} className={r.errors.newIssue24h ? "fresh-issue" : issue.state === "open" ? "font-medium" : ""}>
