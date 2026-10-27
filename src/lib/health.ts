@@ -32,7 +32,10 @@ export async function checkApp(url: string): Promise<Health> {
 export async function checkJobs(url: string): Promise<Jobs> {
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(10_000), headers: { "user-agent": "Launchpad health check" } });
-    if (!r.ok) return { ok: false, reason: `answered ${r.status}` };
+    if (!r.ok) {
+      await r.body?.cancel();
+      return { ok: false, reason: `answered ${r.status}` };
+    }
     // Another app's answer: a malformed list must fail this check, not the board (or read as on time).
     const { jobs } = (await r.json()) as { jobs?: unknown };
     // A lastRan in the future (a clock or timezone bug in the app) would never turn late: unreadable too.

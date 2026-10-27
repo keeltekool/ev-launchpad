@@ -88,9 +88,8 @@ export async function getSentrySummary(now = Date.now()): Promise<SentrySummary>
       const at = new Date(t).toISOString();
       if (at > (heard.get(h.project) ?? "")) heard.set(h.project, at);
     }
-    // Rows come newest first: keep each issue's first (newest) area.
-    const areaOf = new Map<string, string>();
-    for (const a of areas.data) if (a.area && !areaOf.has(String(a["issue.id"]))) areaOf.set(String(a["issue.id"]), a.area);
+    // Rows come newest first; reversed, the newest area of each issue is written last and wins.
+    const areaOf = new Map(areas.data.filter((a) => a.area).reverse().map((a) => [String(a["issue.id"]), a.area!]));
     const bySlug: Record<string, SentryApp> = {};
     for (const p of projects) {
       if (RETIRED.has(p.slug)) continue;

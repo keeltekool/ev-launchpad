@@ -21,7 +21,7 @@ export type Board = { problems: Row[]; watched: Row[]; uptime: Row[]; dormant: A
 
 export const SLOW_MS = 3000;
 
-export const isLate = (j: Job, now: Date) => !j.lastRan || now.getTime() - Date.parse(j.lastRan) > j.lateAfterHours * 3600e3;
+const isLate = (j: Job, now: Date) => !j.lastRan || now.getTime() - Date.parse(j.lastRan) > j.lateAfterHours * 3600e3;
 
 function row(a: { name: string; url?: string; repo?: string; links: AppLink[] }, sentry: string | undefined, health: Health | undefined, errors: SentryApp | undefined, jobs: Jobs | undefined, now: Date): Row {
   const problems: Problem[] = [];
