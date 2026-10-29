@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AppLink } from "@/lib/apps";
-import type { Board, Row } from "@/lib/board";
-import { ago, downPrompt, downReason, errorPrompt, latePrompt, lateLines } from "@/lib/prompt";
+import type { AgentLine, Board, Row } from "@/lib/board";
+import { agentPrompt, ago, downPrompt, downReason, errorPrompt, failureLine, latePrompt, lateLines } from "@/lib/prompt";
 
 const REFRESH_MS = 5 * 60_000;
 const TZ = "Europe/Tallinn";
@@ -13,6 +13,9 @@ const date = (iso: string) => new Intl.DateTimeFormat("en-GB", { weekday: "short
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const frontDoor = (r: { url?: string; links: AppLink[] }) => r.links[0]?.url ?? r.url;
 const ms = (n: number) => `${n.toLocaleString("en-GB").replace(",", " ")} ms`;
+const took = (n: number) => (n < 60e3 ? `${Math.round(n / 1e3)} s` : n < 3600e3 ? `${Math.round(n / 60e3)} min` : `${(n / 3600e3).toFixed(1)} h`);
+const tokens = (n: number) => (n < 1e3 ? String(n) : n < 1e6 ? `${Math.round(n / 1e3)}k` : `${(n / 1e6).toFixed(1)}M`);
+const failedAgents = (r: Row) => r.agents.filter((l) => l.health.failedNew);
 
 // "58× · 13 h ago · resolved · queue:waiting" (count is all-time; state is open, came back, resolved or archived)
 function errorMeta(r: Row, checkedAt: string) {
@@ -21,7 +24,7 @@ function errorMeta(r: Row, checkedAt: string) {
 }
 
 const problemPrompt = (r: Row, checkedAt: string) =>
-  [r.problems.includes("down") && downPrompt(r, checkedAt), r.problems.includes("new error") && r.errors?.latest && errorPrompt(r), r.problems.includes("late") && latePrompt(r, checkedAt)]
+  [r.problems.includes("down") && downPrompt(r, checkedAt), r.problems.includes("new error") && r.errors?.latest && errorPrompt(r), r.problems.includes("late") && latePrompt(r, checkedAt), ...failedAgents(r).map(agentPrompt)]
     .filter(Boolean)
     .join("\n\n");
 
@@ -54,6 +57,7 @@ export default function BoardClient({ board }: { board: Board }) {
   const match = (name: string) => !q || name.toLowerCase().includes(q);
   const watched = board.watched.filter((r) => match(r.name));
   const uptime = board.uptime.filter((r) => match(r.name));
+  const agents = board.agents.filter((l) => match(l.app ?? "") || match(l.health.name));
   const dormant = board.dormant.filter((a) => match(a.name));
   const checkedCount = [...board.watched, ...board.uptime].filter((r) => r.health).length;
   const checked = clock(board.checkedAt);
@@ -125,6 +129,32 @@ export default function BoardClient({ board }: { board: Board }) {
           {watched.length === 0 && <p className="border-b border-rule py-3 text-ink-2">No watched app matches “{query.trim()}”.</p>}
         </section>
 
+        <section aria-labelledby="agents" className="mt-10">
+          <h2 id="agents" className="form-label mb-1">
+            Web agents · {board.agents.length} <span className="normal-case tracking-normal">(Managed Agents sessions, traced by Claude Platform)</span>
+          </h2>
+          {!board.agentsOk && <p className="border-b border-rule py-2 text-[0.875rem] text-ink-2">Sentry unreachable: agent health unknown.</p>}
+          <table className="ledger ledger-agents text-[0.875rem]">
+            <thead>
+              <tr>
+                <th className="form-label">Agent</th>
+                <th className="form-label">Last session</th>
+                <th className="form-label">7 days</th>
+                <th className="form-label" title="A failed session outranks a failed step">Failure, 7 days</th>
+                <th className="form-label">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {agents.map((l) => (
+                <AgentRow key={`${l.app}/${l.health.name}`} line={l} board={board} />
+              ))}
+            </tbody>
+          </table>
+          {agents.length === 0 && <p className="border-b border-rule py-3 text-ink-2">{q ? `No agent matches “${query.trim()}”.` : "No agents registered or traced."}</p>}
+        </section>
+
         <section aria-labelledby="uptime" className="mt-10">
           <h2 id="uptime" className="form-label border-b-[3px] border-double border-rule-strong pb-1">
             Uptime only · {board.uptime.length} <span className="normal-case tracking-normal">(no Sentry: up or down is all Launchpad knows)</span>
@@ -193,6 +223,11 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
               {lateLines(r, board.checkedAt).map((l) => (
                 <p key={l} className="mt-0.5 text-[0.9375rem]">
                   Late: {l}
+                </p>
+              ))}
+              {failedAgents(r).map((l) => (
+                <p key={l.health.name} className="mt-0.5 text-[0.9375rem] [overflow-wrap:anywhere]">
+                  Agent failed: {l.health.name}, {l.health.failure!.type ?? "error"} · {ago(l.health.failure!.at, board.checkedAt)}
                 </p>
               ))}
               {issue && (
@@ -281,6 +316,72 @@ function WatchedRow({ row: r, board }: { row: Row; board: Board }) {
         </span>
       </td>
       <td data-col="links">{r.links.length ? <Links links={r.links} /> : <span className="text-ink-2">not in the registry</span>}</td>
+    </tr>
+  );
+}
+
+function AgentRow({ line: l, board }: { line: AgentLine; board: Board }) {
+  const h = l.health;
+  const f = h.failure;
+  return (
+    <tr>
+      <td data-col="name">
+        {l.app ? (
+          <>
+            <a href={l.url} target="_blank" rel="noopener" className="font-medium no-underline hover:underline">
+              {l.app}
+            </a>
+            <span className="text-ink-2"> · {h.name}</span>
+          </>
+        ) : (
+          <span className="font-medium" title="Not in Launchpad's registry">
+            {h.name}
+          </span>
+        )}
+      </td>
+      <td data-col="status">
+        {!h.last ? (
+          <span className="text-ink-2">—</span>
+        ) : h.last.ok ? (
+          <span className="form-label">{ago(h.last.at, board.checkedAt)}</span>
+        ) : (
+          <span className={`form-label !font-bold ${h.failedNew ? "!text-red" : "!text-ink"}`}>failed {ago(h.last.at, board.checkedAt)}</span>
+        )}
+      </td>
+      <td data-col="stats">
+        {h.sessions ? (
+          <span title={`Tokens: ${h.tokensIn.toLocaleString("en-GB")} in (cache reads included), ${h.tokensOut.toLocaleString("en-GB")} out`}>
+            {plural(h.sessions, "session", "sessions")}{h.failed > 0 && <span className="font-medium"> · {h.failed} failed</span>} · median {took(h.medianMs ?? 0)}
+            {h.tokensIn + h.tokensOut > 0 && ` · ${tokens(h.tokensIn)} in / ${tokens(h.tokensOut)} out`}
+          </span>
+        ) : (
+          <span className="text-ink-2">No sessions in 7 days</span>
+        )}
+      </td>
+      <td data-col="error" className="remark">
+        {f ? (
+          <>
+            <span className={f.kind === "session" ? (h.failedNew ? "fresh-issue" : "font-medium") : ""} title={failureLine(f)}>
+              {failureLine(f)}
+            </span>
+            <span className="text-[0.75rem] leading-snug text-ink-2">
+              {f.count}× · {ago(f.at, board.checkedAt)}
+              {f.kind === "step" && " · the session went on"}
+            </span>
+          </>
+        ) : (
+          // Nothing for a quiet agent: an empty cell is hidden on phones, so its entry has no blank line.
+          (!board.agentsOk || h.sessions > 0) && <span className="text-ink-2">{board.agentsOk ? "No failures in 7 days" : "—"}</span>
+        )}
+      </td>
+      <td data-col="actions">
+        <span className="flex gap-2">
+          {f && <CopyPrompt text={agentPrompt(l)} />}
+          <a href={h.tracesUrl} target="_blank" rel="noopener" className="act" title={`${h.name}'s traces in Sentry`}>
+            Traces
+          </a>
+        </span>
+      </td>
     </tr>
   );
 }

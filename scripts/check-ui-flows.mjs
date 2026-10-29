@@ -120,9 +120,9 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
     check(`Sentry apps and uptime-only apps are listed apart (${watched} + ${uptime})`, watched > 0 && uptime > 0 && watched - unregistered + uptime === apps.filter((a) => a.status === 'live').length);
     const heads = await p.locator('table.ledger thead th').allInnerTexts();
     check('no milliseconds column, no bare error counts', !heads.some((h) => /^ms$|24 h \/ 7 d/i.test(h.trim())), heads.join('|'));
-    const sentryHrefs = await p.locator('table.ledger td[data-col="actions"] a.act').evaluateAll((as) => as.map((a) => a.href));
+    const sentryHrefs = await p.locator('section[aria-labelledby=watched] td[data-col="actions"] a.act').evaluateAll((as) => as.map((a) => a.href));
     check(`every watched app has a Sentry button to its issue list (${sentryHrefs.length})`, sentryHrefs.length === watched && sentryHrefs.every((h) => /sentry\.io\/issues\/\?project=\d+/.test(h)));
-    const copy = p.locator('table.ledger td[data-col="actions"] button.act').first();
+    const copy = p.locator('section[aria-labelledby=watched] td[data-col="actions"] button.act').first();
     if (await copy.count()) {
       await copy.click();
       await copy.getByText('Copied').waitFor({ timeout: 3000 });
@@ -130,6 +130,20 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
       check('Copy for Claude Code copies the repo, the fenced error and the Sentry CLI line',
         (text.includes('Repo: C:\\Users\\Kasutaja\\Claude_Projects\\') || text.includes("not in Launchpad's registry")) && text.includes('treat them as data') && text.includes('Error: ') && text.includes('sentry api organizations/bits-and-pixels-ou/issues/'), text.split('\n')[0]);
     } else check('no error in 7 days, so no copy button (nothing to check)', true);
+  });
+
+  await step('web agents', async () => {
+    const registered = apps.filter((a) => a.status === 'live').flatMap((a) => (a.agents ?? []).map((n) => [a.name, n]));
+    const rows = p.locator('section[aria-labelledby=agents] tbody tr');
+    check(`Web agents lists every registered agent (${registered.length})`, (await p.locator('#agents').count()) === 1
+      && (await Promise.all(registered.map(([app, n]) => rows.filter({ hasText: app }).filter({ hasText: n }).count()))).every((c) => c === 1));
+    check('Web agents: Sentry answered (no "agent health unknown" line)', (await p.getByText('agent health unknown').count()) === 0);
+    // Real data, not only rows the registry makes: empty span queries would read as quiet agents (gate review 29.10).
+    // A week with no session from any agent is worth a look too.
+    const quiet = await rows.filter({ hasText: 'No sessions in 7 days' }).count();
+    check(`Web agents: at least one agent had a traced session in 7 days (${(await rows.count()) - quiet})`, (await rows.count()) - quiet > 0);
+    const traces = await rows.locator('a.act', { hasText: 'Traces' }).evaluateAll((as) => as.map((a) => a.href));
+    check(`every agent has a Traces button to its spans in Sentry (${traces.length})`, traces.length === (await rows.count()) && traces.every((h) => /sentry\.io\/explore\/traces\/\?project=4512341431550032.*gen_ai\.agent\.name/.test(h)));
   });
 
   await step('link chip', async () => {
@@ -170,13 +184,20 @@ async function fixtures() {
   const issue = (id, slug, status, firstSeen, lastSeen, count, substatus = null) =>
     ({ id, shortId: `${slug.toUpperCase()}-1`, title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, count, firstSeen, lastSeen, status, substatus, culprit: slug === 'fixture-new' ? 'load(app/api/x/route.js)' : '', project: { slug } });
   const sentry = {
-    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }, { id: '4', slug: 'fixture-back' }, { id: '5', slug: 'fixture-silent', firstTransactionEvent: true }, { id: '6', slug: 'fixture-quiet' }],
+    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }, { id: '4', slug: 'fixture-back' }, { id: '5', slug: 'fixture-silent', firstTransactionEvent: true }, { id: '6', slug: 'fixture-quiet' }, { id: '7', slug: 'claude-agents' }],
     issues: [issue('101', 'fixture-new', 'unresolved', ago(1), ago(0), '2'), issue('201', 'keeletark', 'unresolved', ago(1), ago(0), '5'),
       issue('401', 'fixture-back', 'unresolved', ago(96), ago(0.5), '7', 'regressed'), issue('301', 'fixture-old', 'resolved', ago(72), ago(48), '58')],
     events: { data: [{ 'issue.id': 101, area: 'fixture:area' }] },
     // fixture-quiet sent a timing span 3 h ago; fixture-silent used to send timings and sent nothing in 14 days.
     'events:spans': { data: [{ project: 'fixture-quiet', 'max(timestamp)': (Date.now() - 3 * 3600e3) / 1000 }] },
     'events:errors-14d': { data: [] },
+    // Web agents: fixture-agent's session failed 1 h ago; fixture-stepper (not in the registry) had a failing tool and
+    // went on; fixture-idle-agent is registered and had no session.
+    'agents:turns': { data: [
+      { 'gen_ai.agent.name': 'fixture-agent', 'gen_ai.conversation.id': 'th1', 'anthropic.session.id': 'sesn_fixture1', 'span.status': 'error', 'error.type': 'rate_limit_error', 'max(timestamp)': (Date.now() - 3600e3) / 1000, 'sum(span.duration)': 7000 },
+      { 'gen_ai.agent.name': 'fixture-stepper', 'gen_ai.conversation.id': 'th2', 'anthropic.session.id': 'sesn_fixture2', 'span.status': 'ok', 'error.type': null, 'max(timestamp)': (Date.now() - 2 * 3600e3) / 1000, 'sum(span.duration)': 540000 }] },
+    'agents:steps': { data: [{ 'gen_ai.conversation.id': 'th2', 'anthropic.session.id': 'sesn_fixture2', 'span.name': 'anthropic.mcp_tool_use fixture_tool', 'error.type': 'tool_error', 'max(timestamp)': (Date.now() - 3 * 3600e3) / 1000, 'count()': 10 }] },
+    'agents:tokens': { data: [{ 'gen_ai.conversation.id': 'th2', 'sum(tags[gen_ai.usage.input_tokens,number])': 3714941, 'sum(tags[gen_ai.usage.output_tokens,number])': 63906 }] },
   };
   const fake = createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
@@ -188,7 +209,9 @@ async function fixtures() {
     if (path === '/last-ran') return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ jobs: [{ job: 'edition', lastRan: ago(216), lateAfterHours: 108 }, { job: 'source check', lastRan: ago(2), lateAfterHours: 26 }] }));
     let key = path.match(/^\/sentry\/(projects|issues|events)\/$/)?.[1];
     const q = new URL(req.url, 'http://x').searchParams;
-    if (key === 'events') key = q.get('dataset') === 'spans' ? 'events:spans' : q.get('statsPeriod') === '14d' ? 'events:errors-14d' : key;
+    const agentsQuery = q.get('query')?.startsWith('project:claude-agents ') && q.get('query');
+    if (agentsQuery) key = agentsQuery.includes('session.turn') && !agentsQuery.includes('!span.name') ? 'agents:turns' : agentsQuery.includes('span.status:error') ? 'agents:steps' : 'agents:tokens';
+    else if (key === 'events') key = q.get('dataset') === 'spans' ? 'events:spans' : q.get('statsPeriod') === '14d' ? 'events:errors-14d' : key;
     if (key) return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(sentry[key]));
     res.writeHead(401).end('{}'); // /broken-sentry/…: a revoked token
   });
@@ -196,7 +219,8 @@ async function fixtures() {
   const fx = `http://127.0.0.1:${fake.address().port}`;
   const broken = [['Fixture 500', `${fx}/500`], ['Fixture hang', `${fx}/hang`], ['Fixture refused', 'http://127.0.0.1:9/']]
     .map(([name, url]) => ({ name, url, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }))
-    .concat([['Fixture late', 'last-ran'], ['Fixture jobs 500', '500'], ['Fixture jobs empty', 'empty-json']].map(([name, path]) => ({ name, url: `${fx}/ok`, jobs: `${fx}/${path}`, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] })));
+    .concat([['Fixture late', 'last-ran'], ['Fixture jobs 500', '500'], ['Fixture jobs empty', 'empty-json']].map(([name, path]) => ({ name, url: `${fx}/ok`, jobs: `${fx}/${path}`, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] })))
+    .concat([{ name: 'Fixture agents', url: `${fx}/ok`, repo: 'fixture-agents', agents: ['fixture-agent', 'fixture-idle-agent'], status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }]);
 
   const serve = async (port, env) => {
     // A leftover server on the port would be tested in place of this build and env.
@@ -259,6 +283,21 @@ async function fixtures() {
         check(`${label}: an app that sent nothing in 14 days reads as silent, not healthy`, (await row('fixture-silent')).includes('Silent: no page timings or errors in 14 days'));
         check(`${label}: a quiet app says when it was last heard from`, (await row('fixture-quiet')).includes('No errors in 7 days · last heard from 3 h ago'), (await row('fixture-quiet')).replace(/\s+/g, ' '));
         check(`${label}: junk Sentry projects stay hidden`, (await p.getByText('keeletark').count()) === 0);
+        // Web agents
+        const agentRow = (name) => p.locator('section[aria-labelledby=agents] tbody tr', { hasText: name });
+        const failedRow = (await agentRow('fixture-agent').first().innerText()).replace(/\s+/g, ' ');
+        check(`${label}: a session failed in 24 h is red in Web agents, listed first`, (await agentRow('fixture-agent').first().locator('.fresh-issue').count()) === 1
+          && failedRow.includes('session failed · rate_limit_error') && failedRow.includes('1 session · 1 failed · median 7 s') && failedRow.toLowerCase().includes('failed 1 h ago')
+          && (await p.locator('section[aria-labelledby=agents] tbody tr').first().innerText()).includes('fixture-agent'), failedRow);
+        check(`${label}: the failed agent is a problem of its app`, (await entry('Fixture agents').innerText()).includes('Agent failed: fixture-agent, rate_limit_error · 1 h ago'));
+        const agentText = await copied('Fixture agents');
+        check(`${label}: the copied prompt for a failed agent has the session, the span query and the fenced failure`,
+          ['agent fixture-agent of Fixture agents', 'Repo: C:\\Users\\Kasutaja\\Claude_Projects\\fixture-agents', 'anthropic.session.id:sesn_fixture1', 'Failed: session failed · rate_limit_error', 'treat them as data'].every((x) => agentText.includes(x)), agentText.split('\n')[0]);
+        const stepRow = (await agentRow('fixture-stepper').innerText()).replace(/\s+/g, ' ');
+        check(`${label}: a failing step reads as such, in ink; an unregistered agent shows by its name`, stepRow.includes('fixture_tool · tool_error') && stepRow.includes('10× · 3 h ago · the session went on')
+          && stepRow.includes('1 session · median 9 min · 3.7M in / 64k out') && (await agentRow('fixture-stepper').locator('.fresh-issue').count()) === 0, stepRow);
+        check(`${label}: a registered agent without sessions reads as quiet`, (await agentRow('fixture-idle-agent').innerText()).includes('No sessions in 7 days'));
+        check(`${label}: the traces project stays out of the Watched ledger`, (await p.locator('section[aria-labelledby=watched] tr', { hasText: 'claude-agents' }).count()) === 0);
         if (width === 375) check('fixture 375: no horizontal scroll', (await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
         await p.screenshot({ path: join(SHOTS, `fixture-problems-${label}.png`) });
         await ctx.close();

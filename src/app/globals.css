@@ -170,6 +170,12 @@ a:hover {
   text-overflow: ellipsis;
 }
 
+/* Agents: the failure wraps instead of cutting off; it is the reason to look at the row. */
+.ledger-agents td[data-col="error"] > * {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 /* Actions: outlined in the ruling; the one primary action (copy the prompt for a problem) is solid ink. */
 .act {
   display: inline-flex;
@@ -262,6 +268,15 @@ a:hover {
   .ledger td[data-col="actions"]:not(:has(a, button)) { display: none; }
   .ledger td[data-col="links"] { grid-area: links; }
   .ledger td:empty { display: none; }
+  /* Agents: name and last session, the week's counts, the latest failure, then the actions. */
+  .ledger-agents tbody tr {
+    grid-template-areas:
+      "name status"
+      "stats stats"
+      "error error"
+      "actions actions";
+  }
+  .ledger td[data-col="stats"] { grid-area: stats; text-align: left; }
   /* The hover fill goes on the whole entry, so the gaps between its lines fill too. */
   .ledger tbody tr:hover { background: color-mix(in oklab, var(--sheet) 70%, var(--rule) 30%); }
   .ledger tbody tr:hover td { background: transparent; }

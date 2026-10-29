@@ -28,6 +28,7 @@ For the owner alone: one page that answers **"is anything of mine broken right n
   - a Sentry button to the app's issue list, and the app's link chips
 
   Order: problems first, then apps with open issues, then A–Z.
+- **Web agents** (added 29.10.2026, owner: "display health in launchpad, separate web agents section"): one row per Managed Agent, from the spans Claude Platform exports to the Sentry project `claude-agents` (metadata only). Each row: app · agent, last session (age, or "failed" in red when that session failed in the last 24 h), the 7-day sessions, failed count, median agent time and tokens in/out, the failure of the week (a failed session outranks a failed tool or model step; a step reads "the session went on" and is never red), "Copy for Claude Code" when there is a failure, and a Traces button. A failed session in 24 h is also a red problem of the app ("Agent failed"). Plan: `docs/plans/2026-10-29-web-agents.md`.
 - **Uptime only:** apps without Sentry as a compact list of names that open the app, struck through in red when down, "slow" past 3 s.
 - No response-time column and no bare error counts.
 - **Dormant apps:** a collapsed section "Dormant (N)" with only the name and link chips. No checks run on them.
@@ -37,7 +38,7 @@ For the owner alone: one page that answers **"is anything of mine broken right n
 - Layout: mobile first, with a real desktop layout at 1440 and 1920.
 
 ## Data
-- `data/apps.json` registry entry: `{ name, url, repo?, sentry?, jobs?, status: "live" | "dormant", links: [{ label, url }] }`. `jobs` is the app's last-ran page (added 27.10, RESUME item 2): `GET` answers `{ jobs: [{ job, lastRan: ISO | null, lateAfterHours }] }`, public, timestamps only. A job past its window, or a last-ran page that fails or answers an unreadable list while the app is up, is a red problem ("late"). `repo` is the folder under `C:\Users\Kasutaja\Claude_Projects\` that the copied prompt names. `url` is the address that gets checked. It is seeded from the old `projects.json` plus the live apps in global STACK.md.
+- `data/apps.json` registry entry: `{ name, url, repo?, sentry?, jobs?, agents?, status: "live" | "dormant", links: [{ label, url }] }`. `agents` lists the app's Managed Agents by name (29.10); an agent the traces show but no live app lists appears by its name. `jobs` is the app's last-ran page (added 27.10, RESUME item 2): `GET` answers `{ jobs: [{ job, lastRan: ISO | null, lateAfterHours }] }`, public, timestamps only. A job past its window, or a last-ran page that fails or answers an unreadable list while the app is up, is a red problem ("late"). `repo` is the folder under `C:\Users\Kasutaja\Claude_Projects\` that the copied prompt names. `url` is the address that gets checked. It is seeded from the old `projects.json` plus the live apps in global STACK.md.
 - Sentry: org `bits-and-pixels-ou` (EU, `https://de.sentry.io/api/0`). The read token is the existing Vercel env `SENTRY_AUTH_TOKEN`.
 - Health check: a server-side GET to `url` that follows redirects, with a 10 s timeout. It records the status code and ms.
 

@@ -3,6 +3,8 @@ const API = (process.env.VERCEL_ENV !== "production" && process.env.SENTRY_API) 
 const WEB = "https://bits-and-pixels-ou.sentry.io";
 // ponytail: junk projects waiting for the owner's delete (plan Task 1.1); drop this line once they are gone.
 const RETIRED = new Set(["javascript-nextjs", "keeletark"]);
+// Managed Agents traces, read by agents.ts: no app errors, so no Watched row.
+export const AGENTS_PROJECT = "claude-agents";
 
 export type SentryIssue = {
   id: string;
@@ -48,7 +50,7 @@ type Issue = {
 type Areas = { data: { "issue.id": number; area: string | null }[] };
 type Newest = { data: { project: string; "max(timestamp)": number | string }[] }; // spans: epoch seconds; errors: ISO
 
-async function get<T>(path: string): Promise<T> {
+export async function get<T>(path: string): Promise<T> {
   const r = await fetch(`${API}/${path}`, {
     headers: { Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN}` },
     signal: AbortSignal.timeout(10_000),
@@ -92,7 +94,7 @@ export async function getSentrySummary(now = Date.now()): Promise<SentrySummary>
     const areaOf = new Map(areas.data.filter((a) => a.area).reverse().map((a) => [String(a["issue.id"]), a.area!]));
     const bySlug: Record<string, SentryApp> = {};
     for (const p of projects) {
-      if (RETIRED.has(p.slug)) continue;
+      if (RETIRED.has(p.slug) || p.slug === AGENTS_PROJECT) continue;
       const lastHeard = heardRows ? (heard.get(p.slug) ?? null) : undefined;
       bySlug[p.slug] = { projectUrl: `${WEB}/issues/?project=${p.id}&statsPeriod=7d`, newIssue24h: false, openCount: 0, lastHeard, silent: lastHeard === null && p.firstTransactionEvent };
     }

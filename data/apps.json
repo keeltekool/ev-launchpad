@@ -341,6 +341,7 @@
     "url": "https://keila-leht-ultra.vercel.app",
     "sentry": "keila-leht-ultra",
     "jobs": "https://keila-leht-ultra.vercel.app/api/last-ran",
+    "agents": ["toimetaja", "kirjutaja"],
     "status": "live",
     "links": [
       {
@@ -476,13 +477,15 @@
   {
     "name": "Pocket Clone",
     "url": "https://pocket-clone-virid.vercel.app",
-    "status": "dormant",
+    "agents": ["pocket-sorter"],
+    "status": "live",
     "links": [
       {
         "label": "Open",
         "url": "https://pocket-clone-virid.vercel.app"
       }
-    ]
+    ],
+    "repo": "Pocket_Clone"
   },
   {
     "name": "PriceHNTR",
