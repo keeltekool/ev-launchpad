@@ -183,7 +183,7 @@ async function fixtures() {
   const issue = (id, slug, status, firstSeen, lastSeen, count, substatus = null) =>
     ({ id, shortId: `${slug.toUpperCase()}-1`, title: `FixtureError: ${slug} broke`, permalink: `https://sentry.test/${slug}`, count, firstSeen, lastSeen, status, substatus, culprit: slug === 'fixture-new' ? 'load(app/api/x/route.js)' : '', project: { slug } });
   const sentry = {
-    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }, { id: '4', slug: 'fixture-back' }, { id: '5', slug: 'fixture-silent', firstTransactionEvent: true }, { id: '6', slug: 'fixture-quiet' }, { id: '7', slug: 'claude-agents' }],
+    projects: [{ id: '1', slug: 'fixture-new' }, { id: '2', slug: 'keeletark' }, { id: '3', slug: 'fixture-old' }, { id: '4', slug: 'fixture-back' }, { id: '5', slug: 'fixture-silent', firstTransactionEvent: true }, { id: '6', slug: 'fixture-quiet' }, { id: '7', slug: 'claude-agents' }, { id: '8', slug: 'claude-routines' }],
     issues: [issue('101', 'fixture-new', 'unresolved', ago(1), ago(0), '2'), issue('201', 'keeletark', 'unresolved', ago(1), ago(0), '5'),
       issue('401', 'fixture-back', 'unresolved', ago(96), ago(0.5), '7', 'regressed'), issue('301', 'fixture-old', 'resolved', ago(72), ago(48), '58')],
     events: { data: [{ 'issue.id': 101, area: 'fixture:area' }] },
@@ -296,7 +296,7 @@ async function fixtures() {
         check(`${label}: a failing step reads as such, in ink; an unregistered agent shows by its name`, stepRow.includes('fixture_tool · tool_error') && stepRow.includes('10× · 3 h ago · the session went on')
           && stepRow.includes('1 session · median 9 min · 3.7M in / 64k out') && (await agentRow('fixture-stepper').locator('.fresh-issue').count()) === 0, stepRow);
         check(`${label}: a registered agent without sessions reads as quiet`, (await agentRow('fixture-idle-agent').innerText()).includes('No sessions in 7 days'));
-        check(`${label}: the traces project stays out of the Watched ledger`, (await p.locator('section[aria-labelledby=watched] tr', { hasText: 'claude-agents' }).count()) === 0);
+        check(`${label}: the traces project stays out of the Watched ledger`, (await p.locator('section[aria-labelledby=watched] tr', { hasText: 'claude-' }).count()) === 0);
         if (width === 375) check('fixture 375: no horizontal scroll', (await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
         await p.screenshot({ path: join(SHOTS, `fixture-problems-${label}.png`) });
         await ctx.close();

@@ -5,6 +5,8 @@ const WEB = "https://bits-and-pixels-ou.sentry.io";
 const RETIRED = new Set(["javascript-nextjs", "keeletark"]);
 // Managed Agents traces, read by agents.ts: no app errors, so no Watched row.
 export const AGENTS_PROJECT = "claude-agents";
+// Cloud routine traces (Claude Code OTel from the routines' cloud environment, 29.10): no Watched row either.
+const TRACES_ONLY = new Set([AGENTS_PROJECT, "claude-routines"]);
 
 export type SentryIssue = {
   id: string;
@@ -94,7 +96,7 @@ export async function getSentrySummary(now = Date.now()): Promise<SentrySummary>
     const areaOf = new Map(areas.data.filter((a) => a.area).reverse().map((a) => [String(a["issue.id"]), a.area!]));
     const bySlug: Record<string, SentryApp> = {};
     for (const p of projects) {
-      if (RETIRED.has(p.slug) || p.slug === AGENTS_PROJECT) continue;
+      if (RETIRED.has(p.slug) || TRACES_ONLY.has(p.slug)) continue;
       const lastHeard = heardRows ? (heard.get(p.slug) ?? null) : undefined;
       bySlug[p.slug] = { projectUrl: `${WEB}/issues/?project=${p.id}&statsPeriod=7d`, newIssue24h: false, openCount: 0, lastHeard, silent: lastHeard === null && p.firstTransactionEvent };
     }
