@@ -181,6 +181,10 @@ a:hover {
   white-space: normal;
   min-width: 9rem;
 }
+/* Routines: "App · routine" names are longer; only this table gets the wider name column. */
+.ledger-routines td[data-col="name"] {
+  min-width: 13rem;
+}
 .ledger-agents td[data-col="actions"] > span {
   flex-wrap: wrap;
 }

@@ -146,6 +146,16 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
     check(`every agent has a Traces button to its spans in Sentry (${traces.length})`, traces.length === (await rows.count()) && traces.every((h) => /sentry\.io\/explore\/traces\/\?project=4512341431550032.*gen_ai\.agent\.name/.test(h)));
   });
 
+  await step('cloud routines', async () => {
+    const registered = apps.filter((a) => a.status === 'live').flatMap((a) => (a.routines ?? []).map((r) => [a.name, r.label]));
+    const rows = p.locator('section[aria-labelledby=routines] tbody tr');
+    check(`Cloud routines lists every registered routine (${registered.length})`, (await p.locator('#routines').count()) === 1
+      && (await Promise.all(registered.map(([app, n]) => rows.filter({ hasText: app }).filter({ hasText: n }).count()))).every((c) => c === 1));
+    check('Cloud routines: Sentry answered (no "routine health unknown" line)', (await p.getByText('routine health unknown').count()) === 0);
+    const traces = await rows.locator('a.act', { hasText: 'Traces' }).evaluateAll((as) => as.map((a) => a.href));
+    check(`every routine has a Traces button to its spans in Sentry (${traces.length})`, traces.length === (await rows.count()) && traces.every((h) => /project=4512341673771088.*routine\.name/.test(h)));
+  });
+
   await step('link chip', async () => {
     const app = apps.find((a) => a.status === 'live' && a.links.length > 1);
     const row = p.locator('table.ledger tbody tr', { hasText: app.name }).first();
@@ -197,6 +207,15 @@ async function fixtures() {
       { 'gen_ai.agent.name': 'fixture-stepper', 'gen_ai.conversation.id': 'th2', 'anthropic.session.id': 'sesn_fixture2', 'span.status': 'ok', 'error.type': null, 'max(timestamp)': (Date.now() - 2 * 3600e3) / 1000, 'sum(span.duration)': 540000 }] },
     'agents:steps': { data: [{ 'gen_ai.conversation.id': 'th2', 'anthropic.session.id': 'sesn_fixture2', 'span.name': 'anthropic.mcp_tool_use fixture_tool', 'error.type': 'tool_error', 'max(timestamp)': (Date.now() - 3 * 3600e3) / 1000, 'count()': 10 }] },
     'agents:tokens': { data: [{ 'gen_ai.conversation.id': 'th2', 'sum(tags[gen_ai.usage.input_tokens,number])': 3714941, 'sum(tags[gen_ai.usage.output_tokens,number])': 63906 }] },
+    // Cloud routines: fixture-routine's run failed 2 h ago (a model request); fixture-late-routine never ran (late after
+    // 1 h); fixture-stray-routine (not in the registry) ran fine with one failing Bash call.
+    'routines:runs': { data: [
+      { 'routine.name': 'fixture-routine', 'ccr.session.id': 'cse_fixture1', 'max(timestamp)': (Date.now() - 2 * 3600e3) / 1000, 'sum(span.duration)': 180000 },
+      { 'routine.name': 'fixture-stray-routine', 'ccr.session.id': 'cse_fixture2', 'max(timestamp)': (Date.now() - 5 * 3600e3) / 1000, 'sum(span.duration)': 40000 },
+      { 'routine.name': null, 'ccr.session.id': 'cse_fixture3', 'max(timestamp)': (Date.now() - 3600e3) / 1000, 'sum(span.duration)': 1000 }] },
+    'routines:fails': { data: [
+      { 'routine.name': 'fixture-routine', 'ccr.session.id': 'cse_fixture1', 'span.name': 'claude_code.llm_request', tool_name: null, 'max(timestamp)': (Date.now() - 2 * 3600e3) / 1000, 'count()': 1 },
+      { 'routine.name': 'fixture-stray-routine', 'ccr.session.id': 'cse_fixture2', 'span.name': 'claude_code.tool', tool_name: 'Bash', 'max(timestamp)': (Date.now() - 5 * 3600e3) / 1000, 'count()': 2 }] },
   };
   const fake = createServer((req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
@@ -209,7 +228,16 @@ async function fixtures() {
     let key = path.match(/^\/sentry\/(projects|issues|events)\/$/)?.[1];
     const q = new URL(req.url, 'http://x').searchParams;
     const agentsQuery = q.get('query')?.startsWith('project:claude-agents ') && q.get('query');
-    if (agentsQuery) key = agentsQuery.includes('session.turn') && !agentsQuery.includes('!span.name') ? 'agents:turns' : agentsQuery.includes('span.status:error') ? 'agents:steps' : 'agents:tokens';
+    const routinesQuery = q.get('query')?.startsWith('project:claude-routines ') && q.get('query');
+    if (routinesQuery) {
+      // Like Sentry: 100 rows, newest first. Untagged interactive-session spans are newer than the routines', so a query
+      // that does not filter on the tag gets only those (gate review 30.10).
+      const rows = sentry[routinesQuery.includes('span.status:error') ? 'routines:fails' : 'routines:runs'].data;
+      const untagged = Array.from({ length: 100 }, (_, i) => ({ ...rows[0], 'routine.name': null, 'ccr.session.id': `cse_untagged${i}`, 'max(timestamp)': Date.now() / 1000 - i }));
+      const data = (routinesQuery.includes('has:routine.name') ? rows : [...untagged, ...rows]).slice(0, 100);
+      return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data }));
+    }
+    else if (agentsQuery) key = agentsQuery.includes('session.turn') && !agentsQuery.includes('!span.name') ? 'agents:turns' : agentsQuery.includes('span.status:error') ? 'agents:steps' : 'agents:tokens';
     else if (key === 'events') key = q.get('dataset') === 'spans' ? 'events:spans' : q.get('statsPeriod') === '14d' ? 'events:errors-14d' : key;
     if (key) return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(sentry[key]));
     res.writeHead(401).end('{}'); // /broken-sentry/…: a revoked token
@@ -219,7 +247,8 @@ async function fixtures() {
   const broken = [['Fixture 500', `${fx}/500`], ['Fixture hang', `${fx}/hang`], ['Fixture refused', 'http://127.0.0.1:9/']]
     .map(([name, url]) => ({ name, url, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }))
     .concat([['Fixture late', 'last-ran'], ['Fixture jobs 500', '500'], ['Fixture jobs empty', 'empty-json']].map(([name, path]) => ({ name, url: `${fx}/ok`, jobs: `${fx}/${path}`, status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] })))
-    .concat([{ name: 'Fixture agents', url: `${fx}/ok`, repo: 'fixture-agents', agents: ['fixture-agent', 'fixture-idle-agent'], status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }]);
+    .concat([{ name: 'Fixture agents', url: `${fx}/ok`, repo: 'fixture-agents', agents: ['fixture-agent', 'fixture-idle-agent'], status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }])
+    .concat([{ name: 'Fixture routines', url: `${fx}/ok`, repo: 'fixture-routines', routines: [{ name: 'fixture-routine', trigger: 'trig_fixture1', label: 'Nightly', lateAfterHours: 96 }, { name: 'fixture-late-routine', trigger: 'trig_fixture2', label: 'Hourly', lateAfterHours: 0.1 }], status: 'live', links: [{ label: 'App', url: 'https://example.test/' }] }]);
 
   const serve = async (port, env) => {
     // A leftover server on the port would be tested in place of this build and env.
@@ -296,6 +325,21 @@ async function fixtures() {
         check(`${label}: a failing step reads as such, in ink; an unregistered agent shows by its name`, stepRow.includes('fixture_tool · tool_error') && stepRow.includes('10× · 3 h ago · the session went on')
           && stepRow.includes('1 session · median 9 min · 3.7M in / 64k out') && (await agentRow('fixture-stepper').locator('.fresh-issue').count()) === 0, stepRow);
         check(`${label}: a registered agent without sessions reads as quiet`, (await agentRow('fixture-idle-agent').innerText()).includes('No sessions in 7 days'));
+        // Cloud routines
+        const routineRow = (name) => p.locator('section[aria-labelledby=routines] tbody tr', { hasText: name });
+        const nightly = (await routineRow('Nightly').innerText()).replace(/\s+/g, ' ');
+        check(`${label}: a routine run failed in 24 h is red, with its step and count`, (await routineRow('Nightly').locator('.fresh-issue').count()) === 1
+          && nightly.includes('run failed at llm_request') && nightly.includes('1 run · 1 failed · median 3 min') && nightly.toLowerCase().includes('failed 2 h ago'), nightly);
+        const hourly = (await routineRow('Hourly').innerText()).replace(/\s+/g, ' ');
+        check(`${label}: a routine past its window with no run is late`, hourly.toLowerCase().includes('late') && hourly.includes('Late: no traced run yet (late after 0.1 h)'), hourly);
+        const routinesEntry = (await entry('Fixture routines').innerText()).replace(/\s+/g, ' ');
+        check(`${label}: failed and late routines are problems of their app`, routinesEntry.includes('Routine failed: Nightly, run failed at llm_request · 2 h ago') && routinesEntry.includes('Routine late: Hourly, no traced run yet (late after 0.1 h)'), routinesEntry);
+        const routineText = await copied('Fixture routines');
+        check(`${label}: the copied prompt for a routine names it, its session and how to find its runs`,
+          ['cloud routine "Nightly" of Fixture routines as failed', 'fixture-routines', 'trigger_id trig_fixture1', 'get_run_log for session cse_fixture1', 'routine.name=fixture-routine', 'Failed: run failed at llm_request', 'cloud routine "Hourly"'].every((x) => routineText.includes(x)), routineText.split('\n')[0]);
+        const stray = (await routineRow('fixture-stray-routine').innerText()).replace(/\s+/g, ' ');
+        check(`${label}: an unregistered routine shows by its name; a failing tool reads "the run went on", in ink`, stray.includes('Bash failed') && stray.includes('2× · 5 h ago · the run went on') && (await routineRow('fixture-stray-routine').locator('.fresh-issue').count()) === 0, stray);
+        check(`${label}: untagged runs are not routines`, (await p.locator('section[aria-labelledby=routines] tbody tr', { hasText: 'unnamed' }).count()) === 0 && (await p.locator('section[aria-labelledby=routines] tbody tr', { hasText: 'cse_fixture3' }).count()) === 0);
         check(`${label}: the traces project stays out of the Watched ledger`, (await p.locator('section[aria-labelledby=watched] tr', { hasText: 'claude-' }).count()) === 0);
         if (width === 375) check('fixture 375: no horizontal scroll', (await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
         await p.screenshot({ path: join(SHOTS, `fixture-problems-${label}.png`) });

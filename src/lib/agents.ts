@@ -1,4 +1,4 @@
-import { AGENTS_PROJECT, get } from "./sentry.ts";
+import { AGENTS_PROJECT, plainName, spanIso as iso, spansOf } from "./sentry.ts";
 
 // Managed Agents health, from the spans Claude Platform exports to the Sentry project `claude-agents` (Console →
 // OpenTelemetry, metadata only; docs/plans/2026-10-29-web-agents.md). Turn spans name the agent; step spans (tools,
@@ -32,13 +32,7 @@ type Turn = { "gen_ai.agent.name": string | null; "gen_ai.conversation.id": stri
 type Step = { "gen_ai.conversation.id": string | null; "anthropic.session.id": string | null; "span.name": string; "error.type": string | null; "max(timestamp)": number | string; "count()": number };
 type Tokens = { "gen_ai.conversation.id": string | null; "sum(tags[gen_ai.usage.input_tokens,number])": number | null; "sum(tags[gen_ai.usage.output_tokens,number])": number | null };
 
-// Spans give epoch seconds, other datasets ISO strings; null for an unreadable one (the row is skipped, not the section).
-const iso = (v: number | string | null) => {
-  const t = typeof v === "number" ? v * 1000 : Date.parse(v ?? "");
-  return Number.isFinite(t) ? new Date(t).toISOString() : null;
-};
-// Agent names land in copied prompts outside the data fence: anything but a plain name is not trusted as one.
-const agentName = (n: string | null) => (n && /^[\w .-]{1,64}$/.test(n) ? n : "unnamed agent");
+const agentName = (n: string | null) => plainName(n, "unnamed agent");
 export const emptyAgent = (name: string): AgentHealth => ({ name, sessions: 0, failed: 0, failedNew: false, tokensIn: 0, tokensOut: 0, tracesUrl: TRACES + encodeURIComponent(`gen_ai.agent.name:${name}`) });
 
 export function summarize(turns: Turn[], steps: Step[], tokens: Tokens[], now = Date.now()): Record<string, AgentHealth> {
@@ -88,19 +82,7 @@ export function summarize(turns: Turn[], steps: Step[], tokens: Tokens[], now = 
   return byName;
 }
 
-// ponytail: 100 rows per query (one per agent thread and status), plenty for ~20 sessions a week; paginate if a week ever holds more.
-const spans = <T>(fields: string[], query: string, sort?: string) =>
-  get<{ data: T[] }>(
-    `events/?${new URLSearchParams([
-      ["dataset", "spans"],
-      ["project", "-1"],
-      ["statsPeriod", "7d"],
-      ["per_page", "100"],
-      ...fields.map((f) => ["field", f]),
-      ...(sort ? [["sort", sort]] : []),
-      ["query", `project:${AGENTS_PROJECT} ${query}`],
-    ])}`,
-  ).then((r) => r.data);
+const spans = <T>(fields: string[], query: string, sort?: string) => spansOf<T>(AGENTS_PROJECT, fields, query, sort);
 
 // Three org-level calls; any failure → { ok: false }: the section says Sentry is unreachable, the rest of the board stands.
 export async function getAgentSummary(now = Date.now()): Promise<AgentSummary> {
