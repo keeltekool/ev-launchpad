@@ -3,14 +3,14 @@
 **Live:** https://ev-launchpad.vercel.app (passcode; a `?key=<passcode>` link sets a one-year cookie)
 **Repo:** https://github.com/keeltekool/ev-launchpad (Vercel project `launchpad`, framework Next.js)
 **Type:** Next.js 16.4.3 (App Router, Cache Components, Turbopack), Tailwind v4, Archivo
-**Last updated:** 2026-10-28 (late scheduled jobs, last heard / silent, code locations in prompts; earlier: 2026-10-23 rebuilt from the old static tile wall; spec `SPEC.md`, product `PRODUCT.md`, look `DESIGN.md`, plan `docs/plans/2026-10-23-launchpad-rebuild-sentry.md`)
+**Last updated:** 2026-10-29 (Web agents section, plan `docs/plans/2026-10-29-web-agents.md`; 2026-10-28: late scheduled jobs, last heard / silent, code locations in prompts; earlier: 2026-10-23 rebuilt from the old static tile wall; spec `SPEC.md`, product `PRODUCT.md`, look `DESIGN.md`, plan `docs/plans/2026-10-23-launchpad-rebuild-sentry.md`)
 
 ## Services
 
 | Service | Purpose | Env vars |
 |---------|---------|----------|
 | Vercel | Hosting, auto-deploy from GitHub `master` | `SENTRY_AUTH_TOKEN` (org read token, production), `LAUNCHPAD_PASSCODE` (production + preview) |
-| Sentry (org `bits-and-pixels-ou`, EU `de.sentry.io`) | Reads errors and issues for every project; Launchpad's own errors go to project `launchpad` | DSN hardcoded in `src/lib/report.ts` |
+| Sentry (org `bits-and-pixels-ou`, EU `de.sentry.io`) | Reads errors and issues for every project; Launchpad's own errors go to project `launchpad`; Managed Agents traces in project `claude-agents` (id 4512341431550032), fed by the Claude Console OTel destination "Sentry claude-agents" (metadata only, all workspaces) | DSN hardcoded in `src/lib/report.ts` |
 
 No database. Local: `vercel env pull .env.local --environment production`.
 
@@ -19,6 +19,7 @@ No database. Local: `vercel env pull .env.local --environment production`.
 - `src/app/page.tsx`: `getBoard()` is `'use cache'` with `cacheLife({ stale: 60, revalidate: 60, expire: 120 })`, streamed behind `<Suspense>`. It runs `getSentrySummary()` (`src/lib/sentry.ts`: project list, every production issue over 7 d with an empty `query=` so resolved ones come too, and each issue's `area` tag from `events/?dataset=errors&field=issue.id&field=area`; the junk projects `javascript-nextjs` and `keeletark` are hidden until the owner deletes them) and `checkApp()` (`src/lib/health.ts`) for every live app, then `buildBoard()` (`src/lib/board.ts`).
 - Late jobs (27.10): live apps with `jobs` in the registry (Keila Leht Ultra, Hinnavaht, Keepr) get `checkJobs()` (`src/lib/health.ts`) on the same pass. The answer is validated at that boundary; `isLate()` in `board.ts` makes a red "late" problem with its own copied prompt (`latePrompt`). Market Watch has none on purpose: its hunts are a manual loop, judged by runs, not days.
 - Last heard from (27.10): `sentry.ts` also reads the newest error and the newest timing span per project over 14 d (`events/?dataset=errors|spans&field=project&field=max(timestamp)`, any environment; each optional). A watched app that has sent timings before (`firstTransactionEvent`) and nothing in 14 d reads "Silent". Apps on the light reporter send errors only, so for them silence is normal and only "last heard from" shows. Server-SDK apps get a span from Launchpad's own health check, so for them "last heard" proves the SDK pipe works, not that users came.
+- Web agents (29.10): `src/lib/agents.ts` reads three 7-day span queries in `claude-agents` (turns by `gen_ai.agent.name`, failed steps by thread, tokens) on the same pass; registry `agents: [names]` maps agents to apps (Keila Leht Ultra, Pocket Clone). A failed turn in 24 h is a red "agent failed" problem with its own prompt (`agentPrompt`); failed tool/model steps show in ink. `claude-agents` is hidden from Watched.
 - `src/proxy.ts`: every route needs the cookie `lp_pass` (sha256 of the passcode). `/unlock` posts to `/api/unlock`. Fails closed without `LAUNCHPAD_PASSCODE`.
 - `src/lib/report.ts`: Launchpad's own failures go to Sentry as a plain envelope POST (no SDK), from `src/instrumentation.ts` (`onRequestError`) and `src/app/global-error.tsx`. It sends only when `VERCEL_ENV` is `production`.
 - Test seams, never set on Vercel: `SENTRY_API` (Sentry API base) and `LAUNCHPAD_EXTRA_APPS` (JSON entries appended to the registry). Only the fixture board in `check-ui-flows.mjs` sets them, and both are ignored when `VERCEL_ENV` is `production`.
@@ -37,6 +38,8 @@ No database. Local: `vercel env pull .env.local --environment production`.
 - Sentry `stats_v2` cannot filter by environment. Per-project production error counts come from `events/?dataset=errors&field=project&field=count()&environment=production&environment=vercel-production&project=-1`, one call per period.
 - A pulled `.env.local` holds `VERCEL_ENV=production`, so a local `next start` would report to Sentry. Start it with `VERCEL_ENV=development` in the process env (it wins over `.env.local`).
 - Production on Vercel reports as environment `vercel-production`; the board accepts it and `production`.
+- Two tables share the `ledger` class (Watched, Web agents): flow checks for one section select through `section[aria-labelledby=watched|agents]`, never bare `table.ledger`.
+- A `next start` left on 4870 keeps serving the old build after a rebuild (stale chunks answer 500, flows fail oddly): stop the process on the port first; TaskStop on `npx` leaves the node child running.
 - `npm install` on this machine can fail with ENOTEMPTY while VS Code watches `node_modules`; install in a separate folder and move `node_modules` in.
 
 ## Smoke test
