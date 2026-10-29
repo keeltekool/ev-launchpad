@@ -153,10 +153,9 @@ for (const [label, width, height] of [['375', 375, 812], ['1440', 1440, 900]]) {
     check(`a link chip's href matches the registry (${app.name} ${app.links[1].label})`, href === app.links[1].url, href);
   });
 
-  if (width === 375) {
-    const sideways = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    check('no horizontal scroll at 375', sideways <= 0, `${sideways}px too wide`);
-  }
+  // Both widths: the Web agents ledger once pushed the 1440 board 36 px wide (29.10).
+  const sideways = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  check(`no horizontal scroll at ${label}`, sideways <= 0, `${sideways}px too wide`);
   check('no console errors', consoleErrors.length === 0, consoleErrors.slice(0, 2).join(' | '));
   await p.screenshot({ path: join(SHOTS, `board-${label}.png`) });
   await ctx.close();

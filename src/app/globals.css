@@ -175,6 +175,15 @@ a:hover {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+/* The week's numbers wrap too: on one line they pushed the board past 1440 (sideways scroll, 29.10). */
+.ledger-agents td[data-col="stats"],
+.ledger-agents td[data-col="name"] {
+  white-space: normal;
+  min-width: 9rem;
+}
+.ledger-agents td[data-col="actions"] > span {
+  flex-wrap: wrap;
+}
 
 /* Actions: outlined in the ruling; the one primary action (copy the prompt for a problem) is solid ink. */
 .act {
