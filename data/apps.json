@@ -58,7 +58,6 @@
   {
     "name": "ApplyKit",
     "url": "https://cv-tailor-plus.vercel.app",
-    "routines": [{"name": "applykit-top-picks", "trigger": "trig_01UywuEnZHwtcM9YH9kfbKRz", "label": "Top Picks", "lateAfterHours": 96}],
     "sentry": "applykit",
     "status": "live",
     "links": [
@@ -208,7 +207,6 @@
   {
     "name": "EUDI Wallet Tracker",
     "url": "https://eudi-wallet-tracker.vercel.app",
-    "routines": [{"name": "eudi-pipeline", "trigger": "trig_01GjY2dYsjf58CnEJPNyrRK9", "label": "EUDI Pipeline", "lateAfterHours": 192}],
     "status": "live",
     "links": [
       {
@@ -304,7 +302,6 @@
   {
     "name": "Idea Radar",
     "url": "https://idea-radar-topaz.vercel.app",
-    "routines": [{"name": "idea-radar-curation", "trigger": "trig_01F7P4x3PHq1YW7JuStN7HcW", "label": "Idea Radar Curation", "lateAfterHours": 120}],
     "status": "live",
     "links": [
       {
@@ -407,7 +404,6 @@
   {
     "name": "Lonkero Cruise",
     "url": "https://lonkero-cruise-hki.vercel.app",
-    "routines": [{"name": "lonkero-weekly-scan", "trigger": "trig_01TBGDpVwJAVq5tyXiTrn6PH", "label": "Weekly scan", "lateAfterHours": 192}],
     "status": "live",
     "links": [
       {
@@ -505,7 +501,6 @@
   {
     "name": "Prindipesa",
     "url": "https://prindipesa.vercel.app",
-    "routines": [{"name": "prindipesa-avastaja", "trigger": "trig_01BZc2Vrb7ndPGfuPGEg6meK", "label": "Avastaja", "lateAfterHours": 192}],
     "status": "live",
     "links": [
       {
@@ -805,7 +800,6 @@
   {
     "name": "VAIB-X",
     "url": "https://vaib-x.vercel.app",
-    "routines": [{"name": "vaib-x-weekly-brief", "trigger": "trig_01YHB4bj1tr52bFsfxpDuwHa", "label": "Weekly Brief"}],
     "status": "live",
     "links": [
       {

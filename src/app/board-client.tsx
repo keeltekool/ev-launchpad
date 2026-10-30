@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AppLink } from "@/lib/apps";
-import type { AgentLine, Board, RoutineLine, Row } from "@/lib/board";
-import { agentPrompt, ago, downPrompt, downReason, errorPrompt, failureLine, latePrompt, lateLines, noRunLine, routineFailureLine, routineLateLine, routinePrompt } from "@/lib/prompt";
+import type { AgentLine, Board, Row } from "@/lib/board";
+import { agentPrompt, ago, downPrompt, downReason, errorPrompt, failureLine, latePrompt, lateLines } from "@/lib/prompt";
 
 const REFRESH_MS = 5 * 60_000;
 const TZ = "Europe/Tallinn";
@@ -16,7 +16,6 @@ const ms = (n: number) => `${n.toLocaleString("en-GB").replace(",", " ")} ms`;
 const took = (n: number) => (n < 60e3 ? `${Math.round(n / 1e3)} s` : n < 3600e3 ? `${Math.round(n / 60e3)} min` : `${(n / 3600e3).toFixed(1)} h`);
 const tokens = (n: number) => (n < 1e3 ? String(n) : n < 1e6 ? `${Math.round(n / 1e3)}k` : `${(n / 1e6).toFixed(1)}M`);
 const failedAgents = (r: Row) => r.agents.filter((l) => l.health.failedNew);
-const troubledRoutines = (r: Row) => r.routines.filter((l) => l.health.failedNew || l.late);
 
 // "58× · 13 h ago · resolved · queue:waiting" (count is all-time; state is open, came back, resolved or archived)
 function errorMeta(r: Row, checkedAt: string) {
@@ -25,7 +24,7 @@ function errorMeta(r: Row, checkedAt: string) {
 }
 
 const problemPrompt = (r: Row, checkedAt: string) =>
-  [r.problems.includes("down") && downPrompt(r, checkedAt), r.problems.includes("new error") && r.errors?.latest && errorPrompt(r), r.problems.includes("late") && latePrompt(r, checkedAt), ...failedAgents(r).map(agentPrompt), ...troubledRoutines(r).map((l) => routinePrompt(l, checkedAt))]
+  [r.problems.includes("down") && downPrompt(r, checkedAt), r.problems.includes("new error") && r.errors?.latest && errorPrompt(r), r.problems.includes("late") && latePrompt(r, checkedAt), ...failedAgents(r).map(agentPrompt)]
     .filter(Boolean)
     .join("\n\n");
 
@@ -59,7 +58,6 @@ export default function BoardClient({ board }: { board: Board }) {
   const watched = board.watched.filter((r) => match(r.name));
   const uptime = board.uptime.filter((r) => match(r.name));
   const agents = board.agents.filter((l) => match(l.app ?? "") || match(l.health.name));
-  const routines = board.routines.filter((l) => match(l.app ?? "") || match(l.label));
   const dormant = board.dormant.filter((a) => match(a.name));
   const checkedCount = [...board.watched, ...board.uptime].filter((r) => r.health).length;
   const checked = clock(board.checkedAt);
@@ -157,32 +155,6 @@ export default function BoardClient({ board }: { board: Board }) {
           {agents.length === 0 && <p className="border-b border-rule py-3 text-ink-2">{q ? `No agent matches “${query.trim()}”.` : "No agents registered or traced."}</p>}
         </section>
 
-        <section aria-labelledby="routines" className="mt-10">
-          <h2 id="routines" className="form-label mb-1">
-            Cloud routines · {board.routines.length} <span className="normal-case tracking-normal">(Claude Code routines on the Max plan, traced by Claude Code)</span>
-          </h2>
-          {!board.routinesOk && <p className="border-b border-rule py-2 text-[0.875rem] text-ink-2">Sentry unreachable: routine health unknown.</p>}
-          <table className="ledger ledger-agents ledger-routines text-[0.875rem]">
-            <thead>
-              <tr>
-                <th className="form-label">Routine</th>
-                <th className="form-label">Last run</th>
-                <th className="form-label">7 days</th>
-                <th className="form-label" title="A failed run outranks a failed step">Failure, 7 days</th>
-                <th className="form-label">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {routines.map((l) => (
-                <RoutineRow key={`${l.app}/${l.health.name}`} line={l} board={board} />
-              ))}
-            </tbody>
-          </table>
-          {routines.length === 0 && <p className="border-b border-rule py-3 text-ink-2">{q ? `No routine matches “${query.trim()}”.` : "No routines registered or traced."}</p>}
-        </section>
-
         <section aria-labelledby="uptime" className="mt-10">
           <h2 id="uptime" className="form-label border-b-[3px] border-double border-rule-strong pb-1">
             Uptime only · {board.uptime.length} <span className="normal-case tracking-normal">(no Sentry: up or down is all Launchpad knows)</span>
@@ -256,13 +228,6 @@ function WatchEntry({ board, checked, checkedCount, match }: { board: Board; che
               {failedAgents(r).map((l) => (
                 <p key={l.health.name} className="mt-0.5 text-[0.9375rem] [overflow-wrap:anywhere]">
                   Agent failed: {l.health.name}, {l.health.failure!.type ?? "error"} · {ago(l.health.failure!.at, board.checkedAt)}
-                </p>
-              ))}
-              {troubledRoutines(r).map((l) => (
-                <p key={l.health.name} className="mt-0.5 text-[0.9375rem] [overflow-wrap:anywhere]">
-                  {l.health.failedNew
-                    ? `Routine failed: ${l.label}, ${routineFailureLine(l.health.failure!)} · ${ago(l.health.failure!.at, board.checkedAt)}`
-                    : `Routine late: ${l.label}, ${routineLateLine(l, board.checkedAt)}`}
                 </p>
               ))}
               {issue && (
@@ -351,80 +316,6 @@ function WatchedRow({ row: r, board }: { row: Row; board: Board }) {
         </span>
       </td>
       <td data-col="links">{r.links.length ? <Links links={r.links} /> : <span className="text-ink-2">not in the registry</span>}</td>
-    </tr>
-  );
-}
-
-function RoutineRow({ line: l, board }: { line: RoutineLine; board: Board }) {
-  const h = l.health;
-  const f = h.failure;
-  const red = h.failedNew || l.late;
-  return (
-    <tr>
-      <td data-col="name">
-        {l.app ? (
-          <>
-            <a href={l.url} target="_blank" rel="noopener" className="font-medium no-underline hover:underline">
-              {l.app}
-            </a>
-            <span className="text-ink-2"> · {l.label}</span>
-          </>
-        ) : (
-          <span className="font-medium" title="Not in Launchpad's registry">
-            {l.label}
-          </span>
-        )}
-      </td>
-      <td data-col="status">
-        {l.late ? (
-          <span className="form-label !font-bold !text-red">late{h.last && ` · ${ago(h.last.at, board.checkedAt)}`}</span>
-        ) : !h.last ? (
-          <span className="text-ink-2">—</span>
-        ) : h.last.ok ? (
-          <span className="form-label">{ago(h.last.at, board.checkedAt)}</span>
-        ) : (
-          <span className={`form-label !font-bold ${h.failedNew ? "!text-red" : "!text-ink"}`}>failed {ago(h.last.at, board.checkedAt)}</span>
-        )}
-      </td>
-      <td data-col="stats">
-        {h.runs ? (
-          <span>
-            {plural(h.runs, "run", "runs")}
-            {h.failed > 0 && <span className="font-medium"> · {h.failed} failed</span>} · median {took(h.medianMs ?? 0)}
-          </span>
-        ) : (
-          <span className="text-ink-2">
-            {h.last ? "No runs in 7 days" : noRunLine(l).replace(/^n/, "N")}
-            {l.lateAfterHours == null && " · no schedule"}
-          </span>
-        )}
-      </td>
-      <td data-col="error" className="remark">
-        {f ? (
-          <>
-            <span className={f.kind === "run" ? (h.failedNew ? "fresh-issue" : "font-medium") : ""} title={routineFailureLine(f)}>
-              {routineFailureLine(f)}
-            </span>
-            <span className="text-[0.75rem] leading-snug text-ink-2">
-              {f.count}× · {ago(f.at, board.checkedAt)}
-              {f.kind === "step" && " · the run went on"}
-            </span>
-          </>
-        ) : l.late ? (
-          <span className="fresh-issue">Late: {routineLateLine(l, board.checkedAt)}</span>
-        ) : (
-          // Nothing for a quiet routine: an empty cell is hidden on phones, so its entry has no blank line.
-          (!board.routinesOk || h.runs > 0) && <span className="text-ink-2">{board.routinesOk ? "No failures in 7 days" : "—"}</span>
-        )}
-      </td>
-      <td data-col="actions">
-        <span className="flex gap-2">
-          {(f || red) && <CopyPrompt text={routinePrompt(l, board.checkedAt)} />}
-          <a href={h.tracesUrl} target="_blank" rel="noopener" className="act" title={`${l.label}'s traces in Sentry`}>
-            Traces
-          </a>
-        </span>
-      </td>
     </tr>
   );
 }

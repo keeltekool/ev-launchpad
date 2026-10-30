@@ -6,8 +6,7 @@ const RETIRED = new Set(["javascript-nextjs", "keeletark"]);
 // Managed Agents traces, read by agents.ts: no app errors, so no Watched row.
 export const AGENTS_PROJECT = "claude-agents";
 // Cloud routine traces (Claude Code OTel from the routines' cloud environment, 29.10): no Watched row either.
-export const ROUTINES_PROJECT = "claude-routines";
-const TRACES_ONLY = new Set([AGENTS_PROJECT, ROUTINES_PROJECT]);
+const TRACES_ONLY = new Set([AGENTS_PROJECT, "claude-routines"]);
 
 export type SentryIssue = {
   id: string;
@@ -61,30 +60,6 @@ export async function get<T>(path: string): Promise<T> {
   if (!r.ok) throw new Error(`Sentry ${r.status} on ${path.split("?")[0]}`);
   return r.json() as Promise<T>;
 }
-
-// Span rows of one traces-only project (agents.ts, routines.ts).
-// ponytail: 100 rows per query (one per agent thread or routine run), plenty for ~20 sessions a week; paginate if a week ever holds more.
-export const spansOf = <T>(project: string, fields: string[], query: string, sort?: string, period = "7d") =>
-  get<{ data: T[] }>(
-    `events/?${new URLSearchParams([
-      ["dataset", "spans"],
-      ["project", "-1"],
-      ["statsPeriod", period],
-      ["per_page", "100"],
-      ...fields.map((f) => ["field", f]),
-      ...(sort ? [["sort", sort]] : []),
-      ["query", `project:${project} ${query}`],
-    ])}`,
-  ).then((r) => r.data);
-
-// Spans give epoch seconds, other datasets ISO strings; null for an unreadable one (the row is skipped, not the section).
-export const spanIso = (v: number | string | null) => {
-  const t = typeof v === "number" ? v * 1000 : Date.parse(v ?? "");
-  return Number.isFinite(t) ? new Date(t).toISOString() : null;
-};
-
-// Names from span attributes land in copied prompts outside the data fence: anything but a plain name is not trusted as one.
-export const plainName = (n: string | null, fallback: string) => (n && /^[\w .-]{1,64}$/.test(n) ? n : fallback);
 
 // Production events only, from every project, over the last 7 days.
 const production = (params: [string, string][]) =>
