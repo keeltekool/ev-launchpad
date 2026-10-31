@@ -830,5 +830,18 @@
         "url": "https://whodis-screensaver.vercel.app"
       }
     ]
+  },
+  {
+    "name": "Ühiskassa",
+    "url": "https://uhiskassa.vercel.app",
+    "sentry": "uhiskassa",
+    "status": "live",
+    "links": [
+      {
+        "label": "App",
+        "url": "https://uhiskassa.vercel.app"
+      }
+    ],
+    "repo": "uhiskassa"
   }
 ]
